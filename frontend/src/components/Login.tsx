@@ -23,9 +23,11 @@ function Login() {
           password,
         }
       );
-
+      console.log(response)
       if (response.data.message === "Login successful") {
-        navigate("/dashboard");
+        navigate("/dashboard", {
+          state: { responseData: response.data},
+        });
       }
     } catch (error: any) {
       console.log("Error response:", error.response);
