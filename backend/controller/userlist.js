@@ -1,39 +1,40 @@
 const { connectDB, sql } = require("../model/db");
 const nodemailer = require("nodemailer");
+const loginToBioStar = require("../services/Loginservices");
+const https = require("https");
+const axios = require("axios");
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+});
 
 const searchEmployees = async (req, res) => {
   try {
-    await connectDB();
-    const { search = "" } = req.query;
-    console.log("Search value from frontend:", search, "Type:", typeof search);
+    const sessionId = await loginToBioStar({
+      biostarUrl: process.env.BIOSTAR_URL,
+      loginId: process.env.BIOSTAR_LOGIN_ID,
+      password: process.env.BIOSTAR_PASSWORD,
+      httpsAgent,
+    });
+    console.log("BioStar Login ho gaya:", sessionId);
 
-    let query = `SELECT [USRID] as id, [NM] as name, [EML] as email 
-     FROM [BioStar2_aMay].[dbo].[T_USR]`;
+    const result = await axios.get(
+      `${process.env.BIOSTAR_URL}/api/users?group_id=1&limit=0&offset=0&order_by=user_id:false&last_modified=0`,
+      {
+        headers: {
+          "bs-session-id": sessionId,
+          "Content-Type": "application/json",
+        },
+        httpsAgent,
+      }
+    );
 
-    if (search) {
-      // Use string comparison for all fields since USRID is varchar(128)
-      query += ` WHERE [USRID] LIKE '%${search}%' 
-      OR [NM] LIKE '%${search}%' 
-      OR [EML] LIKE '%${search}%'`;
-    }
+    const users = result.data?.UserCollection || [];
+    const total = result.data?.UserCollection.total || 0
+    console.log(users, total)
 
-    query += ` ORDER BY [NM]`;
-    console.log("Final query:", query);
-
-    const result = await sql.query(query);
-    console.log("Query result count:", result.recordset.length);
-    if (result.recordset.length > 0) {
-      // console.log("Sample USRID values:", result.recordset.slice(0, 3).map(r => r.id));
-    } else if (search && !isNaN(search)) {
-      // If no results for numeric search, show some sample USRIDs to debug
-      const sampleQuery = `SELECT TOP 10 [USRID] as id FROM [BioStar2_aMay].[dbo].[T_USR] ORDER BY [USRID]`;
-      const sampleResult = await sql.query(sampleQuery);
-      console.log(
-        "Available USRID samples:",
-        sampleResult.recordset.map((r) => r.id)
-      );
-    }
-    res.json(result.recordset);
+    res.status(200).json({
+      users
+    });
   } catch (error) {
     console.error("Error fetching employees:", error);
     res
@@ -94,7 +95,6 @@ const sendVerificationEmail = async (req, res) => {
     // Email content with encoded verification link
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const verificationLink = `${frontendUrl}/capture?data=${base64EncodedData}`;
-
 
     const mailOptions = {
       from: smtpConfig.SMTPUSN,

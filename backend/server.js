@@ -35,10 +35,7 @@ app.use("/api/auth", authRouter);
 
 app.post("/login", authRouter);
 const { connectDB } = require("./model/db");
-const {
-  searchEmployees,
-  sendVerificationEmail,
-} = require("./controller/userlist");
+const {  searchEmployees, sendVerificationEmail,} = require("./controller/userlist");
 
 const { verifyToken, upload } = require("./controller/verification");
 const { uploadPhoto } = require("./services/photoupload");
@@ -48,37 +45,10 @@ const { sql } = require("./model/db");
 app.get("/api/employees", searchEmployees);
 app.post("/api/send-email", sendVerificationEmail);
 
-//Verification endpoints
-
 app.post("/api/uploadphoto", upload.single("image"), uploadPhoto);
 
-// Test endpoint to check database tables
-app.get("/api/test-db", async (req, res) => {
-  try {
-    await connectDB();
 
-    // Check if tables exist
-    const tablesQuery = `
-      SELECT TABLE_NAME 
-      FROM INFORMATION_SCHEMA.TABLES 
-      WHERE TABLE_TYPE = 'BASE TABLE' 
-      AND TABLE_NAME IN ('VerificationRequests', 'CapturedPhotos')
-    `;
 
-    const tablesResult = await sql.query(tablesQuery);
-
-    res.json({
-      message: "Database connection successful",
-      existingTables: tablesResult.recordset,
-      allTables: await sql.query(
-        "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'"
-      ),
-    });
-  } catch (error) {
-    console.error("Database test error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 //Serve uploaded files
 app.use("/uploads", express.static("uploads"));

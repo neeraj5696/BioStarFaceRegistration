@@ -11,18 +11,38 @@ interface Employee {
 const SearchEmp = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
+ 
 
-  const fetchEmployees = async (search: string = '') => {
+
+  const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/employees?search=${encodeURIComponent(search)}`);
+      const response = await fetch(`http://localhost:5000/api/employees`,{
+       
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
       const data = await response.json();
-      setEmployees(Array.isArray(data) ? data : []);
+      console.log(data);
+      
+      if (data.users && data.users.rows && Array.isArray(data.users.rows)) {
+        const mappedEmployees = data.users.rows.map((emp: any) => ({
+          id: emp.user_id,
+          name: emp.name,
+          email: emp.email || ''
+        }));
+        setAllEmployees(mappedEmployees);
+        setFilteredEmployees(mappedEmployees);
+      } else {
+        setAllEmployees([]);
+        setFilteredEmployees([]);
+      }
     } catch (error) {
       console.error('Error fetching employees:', error);
       setEmployees([]);
@@ -32,11 +52,21 @@ const SearchEmp = () => {
   };
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchEmployees(searchTerm);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+    fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredEmployees(allEmployees);
+    } else {
+      const filtered = allEmployees.filter(emp => 
+        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredEmployees(filtered);
+    }
+  }, [searchTerm, allEmployees]);
 
   const handleEmployeeToggle = (employee: Employee) => {
     setSelectedEmployees(prev => {
@@ -69,7 +99,10 @@ const SearchEmp = () => {
 
   return (
     <div className="w-1/2 bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">Search Employees</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Search Employees</h2>
+        <span className="text-sm text-gray-500">Total: {allEmployees.length}</span>
+      </div>
       
       {/* Search Input */}
       <div className="relative mb-4">
@@ -86,10 +119,10 @@ const SearchEmp = () => {
       {/* Employee List */}
       <div className="max-h-96 overflow-y-auto mb-4">
         {loading && <p className="text-gray-500 text-center py-4">Loading...</p>}
-        {!loading && employees.length === 0 && searchTerm && (
+        {!loading && filteredEmployees.length === 0 && searchTerm && (
           <p className="text-gray-500 text-center py-4">No employees found</p>
         )}
-        {!loading && employees.map((employee) => {
+        {!loading && filteredEmployees.map((employee) => {
           const isSelected = selectedEmployees.some(emp => emp.id === employee.id);
           return (
             <div
