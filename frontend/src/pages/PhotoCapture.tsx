@@ -3,6 +3,8 @@ import Webcam from "react-webcam";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 
+const BioStarUrl= import.meta.env.VITE_BIOSTAR_URL
+
 const PhotoCapture = () => {
   const [webcamEnabled, setWebcamEnabled] = useState(true);
   const [employeeId, setEmployeeId] = useState<string>("");
@@ -31,6 +33,7 @@ const PhotoCapture = () => {
         }
       } catch (error) {
         console.error('Invalid verification data:', error);
+        console.error('Failed to parse verification token:', { data, error: error instanceof Error ? error.message : String(error) });
         setCameraError('Invalid verification link.');
       }
     }
@@ -76,6 +79,7 @@ const PhotoCapture = () => {
 
     const screenshot = webcamRef.current.getScreenshot();
     if (!screenshot) {
+      console.error('Failed to capture screenshot from webcam');
       setCameraError("Failed to capture image. Please try again.");
       return;
     }
@@ -104,7 +108,7 @@ const PhotoCapture = () => {
       };
 
       await axios.post(
-        "http://localhost:5000/api/uploadphoto",
+        `${BioStarUrl}/api/uploadphoto`,
         photoData,
         { headers: { "Content-Type": "application/json" } }
       );
@@ -113,6 +117,7 @@ const PhotoCapture = () => {
       setWebcamEnabled(false);
     } catch (error) {
       console.error("Error uploading photo:", error);
+      console.error('Photo upload failed:', { employeeId, email, error: error instanceof Error ? error.message : String(error) });
       setCameraError("Failed to upload photo. Please try again.");
     } finally {
       setLoading(false);

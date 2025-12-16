@@ -1,29 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast from "react-hot-toast";
+
+const BioStarUrl= import.meta.env.VITE_BIOSTAR_URL
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const navigate = useNavigate();
+
+  // Get CSRF token on component mount
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get(`${BioStarUrl}/api/auth/csrf-token`, {
+          withCredentials: true
+        });
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error("Failed to fetch CSRF token:", error);
+      }
+    };
+    fetchCsrfToken();
+  }, []);
 
   const handleSubmit = async () => {
     if (!username || !password) {
-      alert("Please enter username and password");
+      toast.error("Please enter username and password");
       return;
     }
 
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${BioStarUrl}/api/auth/login`,
         {
           username,
           password,
+        },
+        {
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          withCredentials: true
         }
       );
-      console.log(response)
+      if( response.status === 200){
+        console.log(response)
+      }
       if (response.data.message === "Login successful") {
         navigate("/dashboard", {
           state: { responseData: response.data},
@@ -32,7 +59,7 @@ function Login() {
     } catch (error: any) {
       console.log("Error response:", error.response);
       const errorMessage = error.response?.data?.message || "Login failed";
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
