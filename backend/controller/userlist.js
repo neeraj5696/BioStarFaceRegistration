@@ -102,7 +102,7 @@ const sendVerificationEmail = async (req, res) => {
     });
 
     // Email content with encoded verification link
-    const frontendUrl = `http://${process.env.FRONTEND_URL}`;
+    const frontendUrl = process.env.FRONTEND_URL;
     const verificationLink = `${frontendUrl}/capture?data=${base64EncodedData}`;
 
     const mailOptions = {

@@ -10,7 +10,7 @@ function App() {
       <Routes>
         <Route path ="/" element = {<Login/>} />
         <Route path ="/dashboard" element = {<HRpage />} />
-        <Route path ="/capture/" element = {<PhotoCapture/>} />
+        <Route path ="/capture" element = {<PhotoCapture/>} />
       </Routes>
       <Toaster position="top-right" />
     </BrowserRouter>

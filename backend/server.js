@@ -18,7 +18,7 @@ console.log("ENV loaded:", {
 //middleware
 app.use(
   cors({
-    origin: Frontend_Url, // Your frontend URL
+    origin: Frontend_Url|| "http://192.168.0.137:5173/", // Your frontend URL
     methods: ["GET", "POST", "PUT"],
     credentials: true,
     optionsSuccessStatus: 200,
