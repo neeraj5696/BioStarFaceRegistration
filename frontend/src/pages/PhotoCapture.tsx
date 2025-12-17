@@ -96,7 +96,8 @@ const PhotoCapture = () => {
     }
 
     try {
-      const processedImage = await validateAndProcessImage(screenshot);
+      const resizedImage = await resizeImageToConstraints(screenshot);
+      const processedImage = await validateAndProcessImage(resizedImage);
       setCapturedImage(processedImage);
       setShowPreview(true);
     } catch (error) {
@@ -105,6 +106,49 @@ const PhotoCapture = () => {
         error instanceof Error ? error.message : "Image processing failed."
       );
     }
+  };
+
+  const resizeImageToConstraints = (imageSrc: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+
+      img.onload = () => {
+        let { width, height } = img;
+        const MIN_SIZE = 250;
+        const MAX_SIZE = 4000;
+
+        // Scale up if too small
+        if (width < MIN_SIZE || height < MIN_SIZE) {
+          const scale = Math.max(MIN_SIZE / width, MIN_SIZE / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+
+        // Scale down if too large
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+          const scale = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+
+        // Create canvas and resize
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Failed to get canvas context"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
+      };
+
+      img.onerror = () => reject(new Error("Failed to load image for resizing"));
+      img.src = imageSrc;
+    });
   };
 
   const handleRetry = () => {
@@ -257,9 +301,10 @@ const PhotoCapture = () => {
                     onUserMediaError={handleCameraError}
                     mirrored={true}
                     videoConstraints={{
-                      width: { ideal: 1280 },
-                      height: { ideal: 1920 },
+                      width: { min: 250, ideal: 1280, max: 4000 },
+                      height: { min: 250, ideal: 1920, max: 4000 },
                       facingMode: "user",
+                      aspectRatio: { ideal: 0.75 },
                     }}
                   />
                   {/* Face Guide Overlay */}
