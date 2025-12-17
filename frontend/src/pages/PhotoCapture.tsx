@@ -86,9 +86,22 @@ const PhotoCapture = () => {
   };
 
   const handleCapturePhoto = async () => {
-    if (!webcamRef.current) return;
+    if (!webcamRef.current || !webcamRef.current.video) return;
 
-    const screenshot = webcamRef.current.getScreenshot();
+    const video = webcamRef.current.video;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setCameraError("Failed to capture image. Please try again.");
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0);
+    const screenshot = canvas.toDataURL("image/png");
+
     if (!screenshot) {
       console.error("Failed to capture screenshot from webcam");
       setCameraError("Failed to capture image. Please try again.");
@@ -252,7 +265,6 @@ const PhotoCapture = () => {
                   <Webcam
                     audio={false}
                     ref={webcamRef}
-                    screenshotFormat="image/jpeg"
                     className="w-full h-full object-cover"
                     onUserMediaError={handleCameraError}
                     mirrored={true}
@@ -261,7 +273,6 @@ const PhotoCapture = () => {
                       height: { min: 480, ideal: 1080 },
                       facingMode: "user",
                     }}
-                    screenshotQuality={1}
                   />
                   {/* Face Guide Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
