@@ -88,7 +88,10 @@ const PhotoCapture = () => {
   const handleCapturePhoto = async () => {
     if (!webcamRef.current) return;
 
-    const screenshot = webcamRef.current.getScreenshot();
+    const screenshot = webcamRef.current.getScreenshot({
+      width: 1920,
+      height: 1080,
+    });
     if (!screenshot) {
       console.error("Failed to capture screenshot from webcam");
       setCameraError("Failed to capture image. Please try again.");
@@ -142,8 +145,13 @@ const PhotoCapture = () => {
           return;
         }
 
+        // Use high-quality rendering for face recognition
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.92));
+        
+        // Maximum quality for Suprema face recognition
+        resolve(canvas.toDataURL("image/jpeg", 1.0));
       };
 
       img.onerror = () => reject(new Error("Failed to load image for resizing"));
@@ -301,10 +309,9 @@ const PhotoCapture = () => {
                     onUserMediaError={handleCameraError}
                     mirrored={true}
                     videoConstraints={{
-                      width: { min: 250, ideal: 1280, max: 4000 },
-                      height: { min: 250, ideal: 1920, max: 4000 },
+                      width: { min: 640, ideal: 1920, max: 4000 },
+                      height: { min: 480, ideal: 1080, max: 4000 },
                       facingMode: "user",
-                      aspectRatio: { ideal: 0.75 },
                     }}
                   />
                   {/* Face Guide Overlay */}
