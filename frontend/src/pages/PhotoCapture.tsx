@@ -103,7 +103,7 @@ const PhotoCapture = () => {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0);
-    const screenshot = canvas.toDataURL("image/jpeg", 1);
+    const screenshot = canvas.toDataURL("image/jpeg", 0.92);
 
     if (!screenshot) {
       console.error("Failed to capture screenshot from webcam");
@@ -277,7 +277,7 @@ const PhotoCapture = () => {
                       height: { min: 480, ideal: 1080 },
                       facingMode: "user",
                     }}
-                    style={{ transform: 'scaleX(-1)' }}
+                    style={{ transform: 'scaleX(-1)', WebkitTransform: 'scaleX(-1)' }}
                   />
                   {/* Face Guide Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
