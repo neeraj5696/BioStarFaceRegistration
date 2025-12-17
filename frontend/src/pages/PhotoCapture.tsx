@@ -14,6 +14,7 @@ const PhotoCapture = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
 
   const webcamRef = React.useRef<Webcam>(null);
@@ -103,7 +104,7 @@ const PhotoCapture = () => {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0);
-    const screenshot = canvas.toDataURL("image/jpeg", 0.92);
+    const screenshot = canvas.toDataURL("image/jpeg", 0.85);
 
     if (!screenshot) {
       console.error("Failed to capture screenshot from webcam");
@@ -132,9 +133,21 @@ const PhotoCapture = () => {
   const handleSubmitPhoto = async () => {
     if (!employeeId || !capturedImage) return;
 
+    // Check file size before upload
+    const sizeInMB = (capturedImage.length * 3) / 4 / 1024 / 1024;
+    if (sizeInMB > 10) {
+      setToastMessage(`Image size (${sizeInMB.toFixed(2)}MB) exceeds 10MB limit. Please try again.`);
+      setTimeout(() => setToastMessage(null), 5000);
+      setShowPreview(false);
+      setCapturedImage(null);
+      return;
+    }
+
     setLoading(true);
 
     try {
+      console.log(`Uploading image: ${sizeInMB.toFixed(2)}MB`);
+
       const photoData = {
         image: capturedImage,
         employeeId,
@@ -142,21 +155,24 @@ const PhotoCapture = () => {
         timestamp: new Date().toISOString(),
       };
 
-      await axios.post(`${BioStarUrl}/api/uploadphoto`, photoData, {
+      const response = await axios.post(`${BioStarUrl}/api/uploadphoto`, photoData, {
         headers: { "Content-Type": "application/json" },
+        timeout: 30000,
       });
 
+      console.log("Upload successful:", response.data);
       setSubmitted(true);
       setWebcamEnabled(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading photo:", error);
-      console.error("Photo upload failed:", {
-        employeeId,
-        email,
-        error: error instanceof Error ? error.message : String(error),
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
       });
       setShowPreview(false);
-      setCameraError("Failed to upload photo. Please try again.");
+      const errorMsg = error.response?.data?.message || error.message || "Failed to upload photo. Please try again.";
+      setCameraError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -198,6 +214,17 @@ const PhotoCapture = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">{toastMessage}</span>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200 p-4">
         <div className="max-w-md mx-auto text-center">
