@@ -44,32 +44,52 @@ const PhotoCapture = () => {
     setWebcamEnabled(false);
   }, []);
 
-  const cropImageToRectangle = (imageSrc: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
+  const validateAndProcessImage = (imageSrc: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       
       img.onload = () => {
-        const cropWidth = 240;
-        const cropHeight = 300;
+        // Validate dimensions: min 250x250, max 4000x4000
+        if (img.width < 250 || img.height < 250) {
+          reject(new Error('Image too small. Minimum 250x250 pixels required.'));
+          return;
+        }
+        if (img.width > 4000 || img.height > 4000) {
+          reject(new Error('Image too large. Maximum 4000x4000 pixels allowed.'));
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        const cropWidth = Math.max(250, Math.min(300, img.width));
+        const cropHeight = Math.max(250, Math.min(350, img.height));
         canvas.width = cropWidth;
         canvas.height = cropHeight;
         
-        // Calculate center crop area
         const centerX = img.width / 2;
         const centerY = img.height / 2;
         
-        // Draw rectangular crop from center
         ctx.drawImage(
           img,
           centerX - cropWidth/2, centerY - cropHeight/2, cropWidth, cropHeight,
           0, 0, cropWidth, cropHeight
         );
         
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        // Convert to JPEG with quality 0.9 to ensure < 10MB
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        
+        // Validate file size (base64 to bytes approximation)
+        const sizeInBytes = (dataUrl.length * 3) / 4;
+        if (sizeInBytes > 10 * 1024 * 1024) {
+          reject(new Error('Image size exceeds 10MB limit.'));
+          return;
+        }
+        
+        resolve(dataUrl);
       };
       
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = imageSrc;
     });
   };
@@ -84,9 +104,14 @@ const PhotoCapture = () => {
       return;
     }
 
-    const croppedImage = await cropImageToRectangle(screenshot);
-    setCapturedImage(croppedImage);
-    setShowPreview(true);
+    try {
+      const processedImage = await validateAndProcessImage(screenshot);
+      setCapturedImage(processedImage);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Image validation failed:', error);
+      setCameraError(error instanceof Error ? error.message : 'Image processing failed.');
+    }
   };
 
   const handleRetry = () => {

@@ -17,7 +17,20 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
 
 const verifyToken = async (req, res) => {
   try {
@@ -94,7 +107,19 @@ const uploadPhoto = async (req, res) => {
     });
   } catch (error) {
     console.error("Error uploading photo:", error);
-    res.status(500).json({ message: "Error uploading photo", error: error.message });
+    
+    // Don't expose internal error details to client
+    const isValidationError = error.message && (
+      error.message.includes('required') || 
+      error.message.includes('not found') ||
+      error.message.includes('invalid')
+    );
+    
+    if (isValidationError) {
+      res.status(400).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Internal server error occurred" });
+    }
   }
 };
 

@@ -1,6 +1,7 @@
 const axios = require("axios");
 require('dotenv').config();
 const https = require("https");
+const logger = require("../utils/logger");
 
 const biostarUrl = process.env.BIOSTAR_URL;
 const loginId = process.env.BIOSTAR_LOGIN_ID;
@@ -9,12 +10,6 @@ const password = process.env.BIOSTAR_PASSWORD;
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false
 });
-
-// Simple logger since AppLogger is not defined
-const AppLogger = {
-  info: (message, data) => console.log(`[INFO] ${message}`, data || ''),
-  error: (message, data) => console.error(`[ERROR] ${message}`, data || '')
-};
 
 const loginToBioStar = async ({
   biostarUrl,
@@ -25,7 +20,7 @@ const loginToBioStar = async ({
   try {
     const loginUrl = `${biostarUrl}/api/login`;
 
-    AppLogger.info("Attempting BioStar login", { url: loginUrl });
+    logger.info("Attempting BioStar API login");
 
     const response = await axios.post(
       loginUrl,
@@ -41,22 +36,19 @@ const loginToBioStar = async ({
       }
     );
 
-    console.log(response.headers["bs-session-id"]);
-
     const sessionId = response.headers["bs-session-id"];
+    
+    if (!sessionId) {
+      logger.error("BioStar login failed - No session ID received", { status: response.status });
+      throw new Error("No session ID received from BioStar");
+    }
 
-    AppLogger.info("BioStar login successful", {
-      status: response.status,
-      sessionId,
-    });
+    logger.success("BioStar API login successful");
 
     return sessionId;
 
   } catch (error) {
-    AppLogger.error("BioStar login failed", {
-      message: error.message,
-      status: error.response?.status,
-    });
+    logger.error("BioStar API login failed", { error: error.message, status: error.response?.status });
     throw error;
   }
 };

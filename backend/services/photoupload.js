@@ -1,6 +1,7 @@
 const axios = require("axios");
 const https = require("https");
 const loginToBioStar = require("./Loginservices");
+const logger = require("../utils/logger");
 
 // Create HTTPS agent to handle self-signed certificates
 const httpsAgent = new https.Agent({
@@ -9,36 +10,68 @@ const httpsAgent = new https.Agent({
 
 const uploadPhoto = async (req, res) => {
   try {
-    // 1. Console log received data
-    // console.log("Received data from frontend:", {
-    //   //  body: req.body,
-    //   image: req.body.image ,
-    //   employeeId: req.body.employeeId,
-    //   email: req.body.email,
-    //   timestamp: req.body.timestamp,
-    // });
+    const { employeeId, email } = req.body;
+    logger.info("Photo upload request received", { employeeId, email });
+   
 
-    // 2. Login to BioStar and get sessionId
-
-    const sessionId = await loginToBioStar({
-      biostarUrl: process.env.BIOSTAR_URL,
-      loginId: process.env.BIOSTAR_LOGIN_ID,
-      password: process.env.BIOSTAR_PASSWORD,
-      httpsAgent,
-    });
-    console.log("BioStar Login ho gaya:", sessionId);
-
-    // 4. Update user face data
+    let sessionId;
     try {
-      console.log("Attempting to update user:", req.body.employeeId);
+      logger.info("Attempting BioStar login for photo upload");
+      sessionId = await loginToBioStar({
+        biostarUrl: process.env.BIOSTAR_URL,
+        loginId: process.env.BIOSTAR_LOGIN_ID,
+        password: process.env.BIOSTAR_PASSWORD,
+        httpsAgent,
+      });
+      logger.success("BioStar login successful for photo upload");
+    } catch (loginError) {
+      logger.error("BioStar login failed during photo upload", { error: loginError.message });
+      return res.status(401).json({
+        success: false,
+        message: "Failed to authenticate with BioStar system",
+        error: loginError.message
+      });
+    }
+
+    if (!sessionId) {
+      return res.status(401).json({
+        success: false,
+        message: "No valid session ID obtained"
+      });
+    }
+
+    // Validate request data
+    if (!req.body.employeeId || !req.body.image) {
+      logger.warning("Photo upload validation failed - Missing data", { employeeId: req.body.employeeId });
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: employeeId and image"
+      });
+    }
+
+    // Update user face data
+    try {
       const userId = req.body.employeeId;
+      logger.info("Updating face data in BioStar", { employeeId: userId });
 
       // Clean the base64 image
-      const cleanImage = req.body.image.startsWith("data:")
-        ? req.body.image.split(",")[1]
-        : req.body.image;
-
-      console.log(cleanImage.slice(0, 30)); // Log the first 30 characters of the cleaned image
+      let cleanImage;
+      try {
+        cleanImage = req.body.image.startsWith("data:")
+          ? req.body.image.split(",")[1]
+          : req.body.image;
+        
+        if (!cleanImage || cleanImage.length === 0) {
+          throw new Error("Invalid image data");
+        }
+      } catch (imageError) {
+        logger.error("Invalid image format", { employeeId: userId, error: imageError.message });
+        return res.status(400).json({
+          success: false,
+          message: "Invalid image format",
+          error: imageError.message
+        });
+      }
 
       const updateResponse = await axios.put(
         `${process.env.BIOSTAR_URL}/api/users/${userId}`,
@@ -49,11 +82,11 @@ const uploadPhoto = async (req, res) => {
                 {
                   template_ex_normalized_image: cleanImage, // base64 stat with /9j
                   templates: [
-                    {
-                      credential_bin_type: "9",
-                      template_ex:
-                        "AAABAAEAVgHZAa8A4wAAAAAAWFVLREUAAAAAdVANMQFkcAAAOQAAAIWEdn+Din+Ed4GCg3eAhHl4gX6OdI56foZ7e3yGe4d7d4OIfnaFgYJ/goB7eniCgXx8gYSEhHqBfXp/eoJ2f4GFcYCAfYV7gYZ3d3l4hHqEfI94cYCDg3+Bf397iYyAgHx7gIp4hol2gnx7hYGAe4KGf4J+gYR+fneJd319gouMf4CAgoWKe3p/hH1/g3pygH57eYGCfop/eoCAi3l6c3d7hIaAiICCfnyIc3qCdXx9en2AeH6DgXp9e4CDe4yGfIKEfoKGgXiCgYOEhnl4foCDf3uFg3qBgIF2g3J8foSBeXh7gYOCgYB6iIR9enx7dYR/fX6AgoCCgXh8fXyAeXuAfYmGiXd9f4p2gXqBgoh7hXl8hXuCgoGCgYZ+e3p/hYSBgomLgnOBf3uCe4WEhIx6fnt4eYZ8gnt7hnp7gHqFfoF/fYCAhIKCgnaDenyJf3t+goh4hYV2goN7g4eNfYOBd4KLgoSBh3qAhn5/joGDgYF6gH6HfYlzhop9hH6AeYGAgH9/gIt/iYJ+god9jYOCgoR/g4WCg3WCg4B4hXl8fYR5iYGAg353g3R6fYd7d3WHgX1xf3t4gYWIeYKEe3h8eoOBf3WGdYCChIR7foiDgX56hYh+eX6AiXuBfXiAdomAeoB+doSCf4aFgXmDgX2AfYp9fH2KfIR6foJwfIOB",
-                    },
+                    // {
+                    //   credential_bin_type: "9",
+                    //   template_ex:
+                    //     "AAABAAEAVgHZAa8A4wAAAAAAWFVLREUAAAAAdVANMQFkcAAAOQAAAIWEdn+Din+Ed4GCg3eAhHl4gX6OdI56foZ7e3yGe4d7d4OIfnaFgYJ/goB7eniCgXx8gYSEhHqBfXp/eoJ2f4GFcYCAfYV7gYZ3d3l4hHqEfI94cYCDg3+Bf397iYyAgHx7gIp4hol2gnx7hYGAe4KGf4J+gYR+fneJd319gouMf4CAgoWKe3p/hH1/g3pygH57eYGCfop/eoCAi3l6c3d7hIaAiICCfnyIc3qCdXx9en2AeH6DgXp9e4CDe4yGfIKEfoKGgXiCgYOEhnl4foCDf3uFg3qBgIF2g3J8foSBeXh7gYOCgYB6iIR9enx7dYR/fX6AgoCCgXh8fXyAeXuAfYmGiXd9f4p2gXqBgoh7hXl8hXuCgoGCgYZ+e3p/hYSBgomLgnOBf3uCe4WEhIx6fnt4eYZ8gnt7hnp7gHqFfoF/fYCAhIKCgnaDenyJf3t+goh4hYV2goN7g4eNfYOBd4KLgoSBh3qAhn5/joGDgYF6gH6HfYlzhop9hH6AeYGAgH9/gIt/iYJ+god9jYOCgoR/g4WCg3WCg4B4hXl8fYR5iYGAg353g3R6fYd7d3WHgX1xf3t4gYWIeYKEe3h8eoOBf3WGdYCChIR7foiDgX56hYh+eX6AiXuBfXiAdomAeoB+doSCf4aFgXmDgX2AfYp9fH2KfIR6foJwfIOB",
+                    // },
                     {
                       credential_bin_type: "5",
                       template_ex:
@@ -74,7 +107,7 @@ const uploadPhoto = async (req, res) => {
         }
       );
 
-      console.log("User update successful:", updateResponse.data);
+      logger.success("Face data updated successfully in BioStar", { employeeId: userId });
 
       res.status(200).json({
         data: {
@@ -85,10 +118,7 @@ const uploadPhoto = async (req, res) => {
         },
       });
     } catch (updateError) {
-      console.error("User update failed:", updateError.message);
-      if (updateError.response) {
-        console.error("Update error details:", updateError.response);
-      }
+      logger.error("Face data update failed in BioStar", { employeeId: req.body.employeeId, error: updateError.message });
 
       // Still return success since login worked
       res.status(400).json({
@@ -102,11 +132,7 @@ const uploadPhoto = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Upload photo error:", error.message);
-    if (error.response) {
-      console.error("Error response data:", error.response.data);
-      console.error("Error response status:", error.response.status);
-    }
+    logger.error("Photo upload process failed", { error: error.message });
     res.status(500).json({
       success: false,
       message: "Failed to upload photo",

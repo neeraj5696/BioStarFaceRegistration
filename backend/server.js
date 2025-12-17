@@ -1,23 +1,32 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const logger = require("./utils/logger");
+const Frontend_Url=process.env.FRONTEND_URL
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT||5000;
 
-console.log("ENV loaded:", process.env.HR_USERNAME, process.env.HR_PASSWORD);
+console.log("ENV loaded:", {
+  HR_USERNAME: process.env.HR_USERNAME ? '***' : 'NOT_SET',
+  HR_PASSWORD: process.env.HR_PASSWORD ? '***' : 'NOT_SET',
+  BIOSTAR_URL: process.env.BIOSTAR_URL ? 'SET' : 'NOT_SET'
+});
 
 //middleware
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: Frontend_Url, // Your frontend URL
+    methods: ["GET", "POST", "PUT"],
     credentials: true,
+    optionsSuccessStatus: 200
   })
 );
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 
 // Add logging middleware
 app.use((req, res, next) => {
@@ -53,8 +62,13 @@ app.post("/api/uploadphoto", upload.single("image"), uploadPhoto);
 //Serve uploaded files
 app.use("/uploads", express.static("uploads"));
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-  console.log(connectDB());
-  console.log("Credentials:", process.env.HR_USERNAME, process.env.HR_PASSWORD);
+app.listen(port,'0.0.0.0', async () => {
+  logger.info(`Server starting on port ${port}`);
+  try {
+    await connectDB();
+    logger.success("Database connected successfully");
+  } catch (error) {
+    logger.error("Database connection failed", { error: error.message });
+  }
+  logger.success(`Server is running on port ${port}`);
 });

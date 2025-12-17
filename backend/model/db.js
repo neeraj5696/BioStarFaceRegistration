@@ -7,7 +7,7 @@ const requiredEnvVars = ['DB_SERVER', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_P
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
-  console.error('Current environment variables:', process.env);
+
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
@@ -25,12 +25,12 @@ const config = {
 
 const connectDB = async () => {
   try {
-    console.log('Attempting to connect to database with config:', {
-      server: config.server,
-      database: config.database,
-      port: config.port,
-      user: config.user
-    });
+    // console.log('Attempting to connect to database with config:', {
+    //   server: config.server,
+    //   database: config.database,
+    //   port: config.port,
+    //   user: config.user
+    // });
     
     await sql.connect(config);
     console.log("✅ Database connected successfully!");

@@ -3,19 +3,21 @@ const nodemailer = require("nodemailer");
 const loginToBioStar = require("../services/Loginservices");
 const https = require("https");
 const axios = require("axios");
+const logger = require("../utils/logger");
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
 
 const searchEmployees = async (req, res) => {
   try {
+    logger.info("Fetching employees from BioStar API");
     const sessionId = await loginToBioStar({
       biostarUrl: process.env.BIOSTAR_URL,
       loginId: process.env.BIOSTAR_LOGIN_ID,
       password: process.env.BIOSTAR_PASSWORD,
       httpsAgent,
     });
-    console.log("BioStar Login ho gaya:", sessionId);
+   
 
     const result = await axios.get(
       `${process.env.BIOSTAR_URL}/api/users?group_id=1&limit=0&offset=0&order_by=user_id:false&last_modified=0`,
@@ -30,13 +32,13 @@ const searchEmployees = async (req, res) => {
 
     const users = result.data?.UserCollection || [];
     const total = result.data?.UserCollection.total || 0
-    console.log(users, total)
+    logger.success("Employees fetched successfully", { totalEmployees: total });
 
     res.status(200).json({
       users
     });
   } catch (error) {
-    console.error("Error fetching employees:", error);
+    logger.error("Failed to fetch employees", { error: error.message });
     res
       .status(500)
       .json({ message: "Error fetching employees", error: error.message });
@@ -48,7 +50,14 @@ const searchEmployees = async (req, res) => {
 const sendVerificationEmail = async (req, res) => {
   try {
     const { employeeId, email } = req.body;
-    console.log(employeeId, email);
+    logger.info("Verification email request received", { employeeId, email });
+    
+    if (!employeeId || !email) {
+      logger.warning("Email sending failed - Missing data", { employeeId, email });
+      return res
+        .status(400)
+        .json({ message: "Employee ID and email are required" });
+    }
 
     await connectDB();
 
@@ -93,7 +102,7 @@ const sendVerificationEmail = async (req, res) => {
     });
 
     // Email content with encoded verification link
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = `http://${process.env.FRONTEND_URL}`;
     const verificationLink = `${frontendUrl}/capture?data=${base64EncodedData}`;
 
     const mailOptions = {
@@ -113,14 +122,14 @@ const sendVerificationEmail = async (req, res) => {
 
     // Send email
     await transporter.sendMail(mailOptions);
+    logger.success("Verification email sent successfully", { employeeId, email });
 
     res.json({
       message: "Verification email sent successfully",
-      verificationLink,
-      encodedData: base64EncodedData,
+     
     });
   } catch (error) {
-    console.error("Error sending verification email:", error);
+    logger.error("Failed to send verification email", { error: error.message });
     res.status(500).json({
       message: "Error sending verification email",
       error: error.message,

@@ -217,7 +217,7 @@ BioStarFaceRegistration/
 ```
 PORT=5000
 DATABASE_URL=postgresql://user:password@localhost:5432/biostar_db
-JWT_SECRET=your_jwt_secret
+
 EMAIL_SERVICE=gmail
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password

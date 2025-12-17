@@ -1,6 +1,14 @@
 const express = require("express");
 require("dotenv").config();
 const axios = require("axios");
+const crypto = require("crypto");
+const biostarturl = process.env.BIOSTAR_URL;
+const https = require("https");
+const logger = require("../utils/logger");
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+});
 
 const router = express.Router();
 
@@ -13,23 +21,55 @@ if (!username || !password) {
   );
 }
 
+// CSRF token generation endpoint
+router.get("/csrf-token", (req, res) => {
+  logger.info("CSRF token requested");
+  const token = crypto.randomBytes(32).toString("hex");
+  res.cookie("csrf-token", token, {
+    httpOnly: false,
+    secure: false,
+    sameSite: "strict",
+  });
+  logger.success("CSRF token generated successfully");
+  res.json({ csrfToken: token });
+});
+
+// CSRF validation middleware
+const validateCSRF = (req, res, next) => {
+  // Skip CSRF for GET requests
+  if (req.method === "GET") {
+    return next();
+  }
+
+  const headerToken = req.headers["x-csrf-token"];
+  const cookieToken = req.cookies["csrf-token"];
+
+  if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+    return res.status(403).json({ message: "Invalid CSRF token" });
+  }
+  next();
+};
+
 router.post("/login", async (req, res) => {
+  // Add security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
   const { username, password } = req.body;
 
-  
+  logger.info("HR login attempt", { username });
 
   //Basic input validation
   if (!username || !password) {
+    logger.warning("Login failed - Missing credentials", { username });
     return res
       .status(400)
       .json({ message: "Username and password are required" });
   }
 
-  console.log("Attempting login with:", { username, password });
-
   try {
     const response = await axios.post(
-      "https://192.168.0.208:448/api/login",
+      `${biostarturl}/api/login`,
       {
         User: {
           login_id: username,
@@ -37,30 +77,43 @@ router.post("/login", async (req, res) => {
         },
       },
       {
-        httpsAgent: new (require("https").Agent)({
-          rejectUnauthorized: false,
-        }),
+        httpsAgent,
       }
     );
 
-    
-    const sessionId = response.headers['bs-session-id'];
-    console.log("API Status:", response.status);
-    console.log("Session ID:", sessionId);
+    const sessionId = response.headers["bs-session-id"];
+    logger.success("HR login successful", { username, sessionId: sessionId ? 'Generated' : 'None' });
 
     res.status(200).json({
       message: "Login successful",
-      data: { 
+      data: {
         username,
         password,
-        sessionId 
+        sessionId,
       },
     });
   } catch (error) {
-    console.error("Login error:", error.message);
-    console.error("Error response:", error.response?.data);
-    console.error("Error status:", error.response?.status);
-    res.status(401).json({ message: "Invalid credentials" });
+    logger.error("HR login failed", { username, error: error.message, status: error.response?.status });
+
+    // Handle different error types appropriately
+    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+      return res
+        .status(503)
+        .json({ message: "Service temporarily unavailable" });
+    }
+
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (error.response?.status >= 500) {
+      return res
+        .status(503)
+        .json({ message: "Service temporarily unavailable" });
+    }
+
+    // Generic error response (don't expose internal details)
+    res.status(500).json({ message: "Authentication failed" });
   }
 });
 
