@@ -72,13 +72,22 @@ app.post("/api/uploadphoto", upload.single("image"), uploadPhoto);
 //Serve uploaded files
 app.use("/uploads", express.static("uploads"));
 
-app.listen(port, "0.0.0.0", async () => {
-  logger.info(`Server starting on port ${port}`);
+// Initialize DB connection
+(async () => {
   try {
     await connectDB();
     logger.success("Database connected successfully");
   } catch (error) {
     logger.error("Database connection failed", { error: error.message });
   }
-  logger.success(`Server is running on port ${port}`);
-});
+})();
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, "0.0.0.0", () => {
+    logger.success(`Server is running on port ${port}`);
+  });
+}
+
+// Export for Vercel
+module.exports = app;
