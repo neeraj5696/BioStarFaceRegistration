@@ -97,7 +97,7 @@ const PhotoCapture = () => {
   const handleCapturePhoto = async () => {
     if (!webcamRef.current) return;
 
-    const screenshot = webcamRef.current.getScreenshot();
+    const screenshot = webcamRef.current.getScreenshot({ width: 640, height: 480 });
     if (!screenshot) {
       console.error('Failed to capture screenshot from webcam');
       setCameraError("Failed to capture image. Please try again.");
