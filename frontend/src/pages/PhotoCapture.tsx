@@ -238,8 +238,8 @@ const PhotoCapture = () => {
                     onUserMediaError={handleCameraError}
                     mirrored={true}
                     videoConstraints={{
-                      width: 480,
-                      height: 640,
+                      width: { min: 640, ideal: 1280 },
+                      height: { min: 480, ideal: 1920 },
                       facingMode: "user"
                     }}
                   />
