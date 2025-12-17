@@ -103,7 +103,7 @@ const PhotoCapture = () => {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0);
-    const screenshot = canvas.toDataURL("image/png");
+    const screenshot = canvas.toDataURL("image/jpeg", 1);
 
     if (!screenshot) {
       console.error("Failed to capture screenshot from webcam");
@@ -272,12 +272,12 @@ const PhotoCapture = () => {
                     ref={webcamRef}
                     className="w-full h-full object-cover"
                     onUserMediaError={handleCameraError}
-                    mirrored={true}
                     videoConstraints={{
                       width: { min: 640, ideal: 1920 },
                       height: { min: 480, ideal: 1080 },
                       facingMode: "user",
                     }}
+                    style={{ transform: 'scaleX(-1)' }}
                   />
                   {/* Face Guide Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
