@@ -4,7 +4,6 @@ const axios = require("axios");
 const crypto = require("crypto");
 const biostarturl = process.env.BIOSTAR_URL;
 const https = require("https");
-const logger = require("../utils/logger");
 
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
@@ -23,14 +22,12 @@ if (!username || !password) {
 
 // CSRF token generation endpoint
 router.get("/csrf-token", (req, res) => {
-  logger.info("CSRF token requested");
   const token = crypto.randomBytes(32).toString("hex");
   res.cookie("csrf-token", token, {
     httpOnly: false,
     secure: false,
     sameSite: "strict",
   });
-  logger.success("CSRF token generated successfully");
   res.json({ csrfToken: token });
 });
 
@@ -57,11 +54,8 @@ router.post("/login", async (req, res) => {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   const { username, password } = req.body;
 
-  logger.info("HR login attempt", { username });
-
   //Basic input validation
   if (!username || !password) {
-    logger.warning("Login failed - Missing credentials", { username });
     return res
       .status(400)
       .json({ message: "Username and password are required" });
@@ -82,7 +76,6 @@ router.post("/login", async (req, res) => {
     );
 
     const sessionId = response.headers["bs-session-id"];
-    logger.success("HR login successful", { username, sessionId: sessionId ? 'Generated' : 'None' });
 
     res.status(200).json({
       message: "Login successful",
@@ -93,8 +86,6 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error("HR login failed", { username, error: error.message, status: error.response?.status });
-
     // Handle different error types appropriately
     if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
       return res

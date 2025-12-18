@@ -1,7 +1,6 @@
 const axios = require("axios");
 require('dotenv').config();
 const https = require("https");
-const logger = require("../utils/logger");
 
 const biostarUrl = process.env.BIOSTAR_URL;
 const loginId = process.env.BIOSTAR_LOGIN_ID;
@@ -20,8 +19,6 @@ const loginToBioStar = async ({
   try {
     const loginUrl = `${biostarUrl}/api/login`;
 
-    logger.info("Attempting BioStar API login");
-
     const response = await axios.post(
       loginUrl,
       {
@@ -39,16 +36,12 @@ const loginToBioStar = async ({
     const sessionId = response.headers["bs-session-id"];
     
     if (!sessionId) {
-      logger.error("BioStar login failed - No session ID received", { status: response.status });
       throw new Error("No session ID received from BioStar");
     }
-
-    logger.success("BioStar API login successful");
 
     return sessionId;
 
   } catch (error) {
-    logger.error("BioStar API login failed", { error: error.message, status: error.response?.status });
     throw error;
   }
 };

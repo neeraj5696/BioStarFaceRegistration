@@ -3,7 +3,6 @@ const nodemailer = require("nodemailer");
 const loginToBioStar = require("../services/Loginservices");
 const https = require("https");
 const axios = require("axios");
-const logger = require("../utils/logger");
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
@@ -15,7 +14,6 @@ const SMTPPW = process.env.SMTPPW;
 
 const searchEmployees = async (req, res) => {
   try {
-    logger.info("Fetching employees from BioStar API");
     const sessionId = await loginToBioStar({
       biostarUrl: process.env.BIOSTAR_URL,
       loginId: process.env.BIOSTAR_LOGIN_ID,
@@ -35,14 +33,11 @@ const searchEmployees = async (req, res) => {
     );
 
     const users = result.data?.UserCollection || [];
-    const total = result.data?.UserCollection.total || 0;
-    logger.success("Employees fetched successfully", { totalEmployees: total });
 
     res.status(200).json({
       users,
     });
   } catch (error) {
-    logger.error("Failed to fetch employees", { error: error.message });
     res
       .status(500)
       .json({ message: "Error fetching employees", error: error.message });
@@ -54,13 +49,8 @@ const searchEmployees = async (req, res) => {
 const sendVerificationEmail = async (req, res) => {
   try {
     const { employeeId, email } = req.body;
-    logger.info("Verification email request received", { employeeId, email });
 
     if (!employeeId || !email) {
-      logger.warning("Email sending failed - Missing data", {
-        employeeId,
-        email,
-      });
       return res
         .status(400)
         .json({ message: "Employee ID and email are required" });
@@ -132,16 +122,11 @@ const sendVerificationEmail = async (req, res) => {
 
     // Send email
     await transporter.sendMail(mailOptions);
-    logger.success("Verification email sent successfully", {
-      employeeId,
-      email,
-    });
 
     res.json({
       message: "Verification email sent successfully",
     });
   } catch (error) {
-    logger.error("Failed to send verification email", { error: error.message });
     res.status(500).json({
       message: "Error sending verification email",
       error: error.message,

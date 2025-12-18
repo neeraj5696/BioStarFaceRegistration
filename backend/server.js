@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
-const logger = require("./utils/logger");
 const Frontend_Url = process.env.FRONTEND_URL;
 
 const app = express();
@@ -72,20 +71,10 @@ app.post("/api/uploadphoto", upload.single("image"), uploadPhoto);
 //Serve uploaded files
 app.use("/uploads", express.static("uploads"));
 
-// Initialize DB connection
-// (async () => {
-//   try {
-//     await connectDB();
-//     logger.success("Database connected successfully");
-//   } catch (error) {
-//     logger.error("Database connection failed", { error: error.message });
-//   }
-// })();
-
 // For local development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, "0.0.0.0", () => {
-    logger.success(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
   });
 }
 

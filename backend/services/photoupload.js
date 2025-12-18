@@ -1,7 +1,6 @@
 const axios = require("axios");
 const https = require("https");
 const loginToBioStar = require("./Loginservices");
-const logger = require("../utils/logger");
 
 // Create HTTPS agent to handle self-signed certificates
 const httpsAgent = new https.Agent({
@@ -11,21 +10,16 @@ const httpsAgent = new https.Agent({
 const uploadPhoto = async (req, res) => {
   try {
     const { employeeId, email } = req.body;
-    logger.info("Photo upload request received", { employeeId, email });
-   
 
     let sessionId;
     try {
-      logger.info("Attempting BioStar login for photo upload");
       sessionId = await loginToBioStar({
         biostarUrl: process.env.BIOSTAR_URL,
         loginId: process.env.BIOSTAR_LOGIN_ID,
         password: process.env.BIOSTAR_PASSWORD,
         httpsAgent,
       });
-      logger.success("BioStar login successful for photo upload");
     } catch (loginError) {
-      logger.error("BioStar login failed during photo upload", { error: loginError.message });
       return res.status(401).json({
         success: false,
         message: "Failed to authenticate with BioStar system",
@@ -42,7 +36,6 @@ const uploadPhoto = async (req, res) => {
 
     // Validate request data
     if (!req.body.employeeId || !req.body.image) {
-      logger.warning("Photo upload validation failed - Missing data", { employeeId: req.body.employeeId });
       return res.status(400).json({
         success: false,
         message: "Missing required fields: employeeId and image"
@@ -52,7 +45,6 @@ const uploadPhoto = async (req, res) => {
     // Update user face data
     try {
       const userId = req.body.employeeId;
-      logger.info("Updating face data in BioStar", { employeeId: userId });
 
       // Clean the base64 image
       let cleanImage;
@@ -65,7 +57,6 @@ const uploadPhoto = async (req, res) => {
           throw new Error("Invalid image data");
         }
       } catch (imageError) {
-        logger.error("Invalid image format", { employeeId: userId, error: imageError.message });
         return res.status(400).json({
           success: false,
           message: "Invalid image format",
@@ -107,8 +98,6 @@ const uploadPhoto = async (req, res) => {
         }
       );
 
-      logger.success("Face data updated successfully in BioStar", { employeeId: userId });
-
       res.status(200).json({
         data: {
           success: true,
@@ -118,8 +107,6 @@ const uploadPhoto = async (req, res) => {
         },
       });
     } catch (updateError) {
-      logger.error("Face data update failed in BioStar", { employeeId: req.body.employeeId, error: updateError.message });
-
       // Still return success since login worked
       res.status(400).json({
         data: {
@@ -132,7 +119,6 @@ const uploadPhoto = async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error("Photo upload process failed", { error: error.message });
     res.status(500).json({
       success: false,
       message: "Failed to upload photo",
