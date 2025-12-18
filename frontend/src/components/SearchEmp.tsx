@@ -3,7 +3,7 @@ import { Search, User, Mail, Send, X } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const BioStarUrl = import.meta.env.VITE_BIOSTAR_URL;
+const BioStarUrl = import.meta.env.VITE_BACKEND_URL;
 
 interface Employee {
   id: string;

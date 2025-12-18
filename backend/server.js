@@ -18,7 +18,7 @@ console.log("ENV loaded:", {
 //middleware
 app.use(
   cors({
-    origin: Frontend_Url|| "http://192.168.0.137:5173/", // Your frontend URL
+    origin: Frontend_Url, // Your frontend URL
     methods: ["GET", "POST", "PUT"],
     credentials: true,
     optionsSuccessStatus: 200,
@@ -73,14 +73,14 @@ app.post("/api/uploadphoto", upload.single("image"), uploadPhoto);
 app.use("/uploads", express.static("uploads"));
 
 // Initialize DB connection
-(async () => {
-  try {
-    await connectDB();
-    logger.success("Database connected successfully");
-  } catch (error) {
-    logger.error("Database connection failed", { error: error.message });
-  }
-})();
+// (async () => {
+//   try {
+//     await connectDB();
+//     logger.success("Database connected successfully");
+//   } catch (error) {
+//     logger.error("Database connection failed", { error: error.message });
+//   }
+// })();
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {

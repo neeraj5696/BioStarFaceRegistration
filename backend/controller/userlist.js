@@ -1,4 +1,4 @@
-const { connectDB, sql } = require("../model/db");
+//const { connectDB, sql } = require("../model/db");
 const nodemailer = require("nodemailer");
 const loginToBioStar = require("../services/Loginservices");
 const https = require("https");
@@ -7,6 +7,11 @@ const logger = require("../utils/logger");
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
+
+const SMTPSRVADR = process.env.SMTPSRVADR;
+const SMTPSRVPT = parseInt(process.env.SMTPSRVPT) || 587;
+const SMTPUSN = process.env.SMTPUSN;
+const SMTPPW = process.env.SMTPPW;
 
 const searchEmployees = async (req, res) => {
   try {
@@ -17,7 +22,6 @@ const searchEmployees = async (req, res) => {
       password: process.env.BIOSTAR_PASSWORD,
       httpsAgent,
     });
-   
 
     const result = await axios.get(
       `${process.env.BIOSTAR_URL}/api/users?group_id=1&limit=0&offset=0&order_by=user_id:false&last_modified=0`,
@@ -31,11 +35,11 @@ const searchEmployees = async (req, res) => {
     );
 
     const users = result.data?.UserCollection || [];
-    const total = result.data?.UserCollection.total || 0
+    const total = result.data?.UserCollection.total || 0;
     logger.success("Employees fetched successfully", { totalEmployees: total });
 
     res.status(200).json({
-      users
+      users,
     });
   } catch (error) {
     logger.error("Failed to fetch employees", { error: error.message });
@@ -51,15 +55,18 @@ const sendVerificationEmail = async (req, res) => {
   try {
     const { employeeId, email } = req.body;
     logger.info("Verification email request received", { employeeId, email });
-    
+
     if (!employeeId || !email) {
-      logger.warning("Email sending failed - Missing data", { employeeId, email });
+      logger.warning("Email sending failed - Missing data", {
+        employeeId,
+        email,
+      });
       return res
         .status(400)
         .json({ message: "Employee ID and email are required" });
     }
 
-    await connectDB();
+    // await connectDB();
 
     // Create encoded data for verification link
     const createdTime = new Date().toISOString();
@@ -77,28 +84,31 @@ const sendVerificationEmail = async (req, res) => {
     ).toString("base64");
 
     // Fetch SMTP credentials from database
-    const smtpQuery = `SELECT [SMTPSRVADR], [SMTPSRVPT], [SMTPUSN], [SMTPPW], [SMTPSEC] 
-                       FROM [BioStar2_aMay].[dbo].[TMP_T_ALMSMTPSET] 
-                       WHERE [NM] = 'smtp-mail'`;
+    // const smtpQuery = `SELECT [SMTPSRVADR], [SMTPSRVPT], [SMTPUSN], [SMTPPW], [SMTPSEC]
+    //                    FROM [BioStar2_aMay].[dbo].[TMP_T_ALMSMTPSET]
+    //                    WHERE [NM] = 'smtp-mail'`;
 
-    const smtpResult = await sql.query(smtpQuery);
+    // const smtpResult = await sql.query(smtpQuery);
     // console.log(smtpResult)
 
-    if (smtpResult.recordset.length === 0) {
-      return res.status(500).json({ message: "SMTP configuration not found" });
-    }
+    // if (smtpResult.recordset.length === 0) {
+    //   return res.status(500).json({ message: "SMTP configuration not found" });
+    // }
 
-    const smtpConfig = smtpResult.recordset[0];
+    // const smtpConfig = smtpResult.recordset[0];
 
     // Create transporter
     const transporter = nodemailer.createTransport({
-      host: smtpConfig.SMTPSRVADR,
-      port: smtpConfig.SMTPSRVPT,
-      secure: "SSL" === smtpConfig.SMTPSEC, // true for 465, false for other ports
+      host: SMTPSRVADR,
+      port: SMTPSRVPT,
+      secure: SMTPSRVPT === 465, // true for 465, false for other ports
       auth: {
-        user: smtpConfig.SMTPUSN,
-        pass: smtpConfig.SMTPPW,
+        user: SMTPUSN,
+        pass: SMTPPW,
       },
+      tls: {
+        rejectUnauthorized: false // For self-signed certificates
+      }
     });
 
     // Email content with encoded verification link
@@ -106,7 +116,7 @@ const sendVerificationEmail = async (req, res) => {
     const verificationLink = `${frontendUrl}/capture?data=${base64EncodedData}`;
 
     const mailOptions = {
-      from: smtpConfig.SMTPUSN,
+      from: SMTPUSN,
       to: email,
       subject: "Face Registration Verification",
       html: `
@@ -122,11 +132,13 @@ const sendVerificationEmail = async (req, res) => {
 
     // Send email
     await transporter.sendMail(mailOptions);
-    logger.success("Verification email sent successfully", { employeeId, email });
+    logger.success("Verification email sent successfully", {
+      employeeId,
+      email,
+    });
 
     res.json({
       message: "Verification email sent successfully",
-     
     });
   } catch (error) {
     logger.error("Failed to send verification email", { error: error.message });

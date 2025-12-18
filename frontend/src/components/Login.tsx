@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const BioStarUrl= import.meta.env.VITE_BIOSTAR_URL
+const Backend_URL= import.meta.env.VITE_BACKEND_URL
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -16,7 +16,7 @@ function Login() {
   useEffect(() => {
     const fetchCsrfToken = async () => {
       try {
-        const response = await axios.get(`${BioStarUrl}/api/auth/csrf-token`, {
+        const response = await axios.get(`${Backend_URL}/api/auth/csrf-token`, {
           withCredentials: true
         });
         setCsrfToken(response.data.csrfToken);
@@ -36,7 +36,7 @@ function Login() {
     setLoading(true);
     try {
       const response = await axios.post(
-        `${BioStarUrl}/api/auth/login`,
+        `${Backend_URL}/api/auth/login`,
         {
           username,
           password,
