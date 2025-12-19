@@ -3,7 +3,12 @@ import { Search, User, Mail, Send, X } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const BioStarUrl = import.meta.env.VITE_BACKEND_URL;
+ const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+ const BioStarUrl = rawBackendUrl
+   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+     ? rawBackendUrl
+     : `http://${rawBackendUrl}`
+   : "";
 
 interface Employee {
   id: string;

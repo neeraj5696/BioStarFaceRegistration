@@ -44,48 +44,49 @@ const PhotoCapture = () => {
     setWebcamEnabled(false);
   }, []);
 
-  const cropImageToRectangle = (imageSrc: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      const img = new Image();
+  // const cropImageToRectangle = (imageSrc: string): Promise<string> => {
+  //   return new Promise((resolve) => {
+  //     const canvas = document.createElement('canvas');
+  //     const ctx = canvas.getContext('2d')!;
+  //     const img = new Image();
       
-      img.onload = () => {
-        const cropWidth = 240;
-        const cropHeight = 300;
-        canvas.width = cropWidth;
-        canvas.height = cropHeight;
+  //     img.onload = () => {
+  //       const cropWidth = 240;
+  //       const cropHeight = 300;
+  //       canvas.width = cropWidth;
+  //       canvas.height = cropHeight;
         
-        // Calculate center crop area
-        const centerX = img.width / 2;
-        const centerY = img.height / 2;
+  //       // Calculate center crop area
+  //       const centerX = img.width / 2;
+  //       const centerY = img.height / 2;
         
-        // Draw rectangular crop from center
-        ctx.drawImage(
-          img,
-          centerX - cropWidth/2, centerY - cropHeight/2, cropWidth, cropHeight,
-          0, 0, cropWidth, cropHeight
-        );
+  //       // Draw rectangular crop from center
+  //       ctx.drawImage(
+  //         img,
+  //         centerX - cropWidth/2, centerY - cropHeight/2, cropWidth, cropHeight,
+  //         0, 0, cropWidth, cropHeight
+  //       );
         
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
+  //       resolve(canvas.toDataURL('image/jpeg', 0.8));
+  //     };
       
-      img.src = imageSrc;
-    });
-  };
+  //     img.src = imageSrc;
+  //   });
+  // };
 
   const handleCapturePhoto = async () => {
     if (!webcamRef.current) return;
 
     const screenshot = webcamRef.current.getScreenshot();
+  // console.log(screenshot)
     if (!screenshot) {
       console.error('Failed to capture screenshot from webcam');
       setCameraError("Failed to capture image. Please try again.");
       return;
     }
 
-    const croppedImage = await cropImageToRectangle(screenshot);
-    setCapturedImage(croppedImage);
+  //  const croppedImage = await cropImageToRectangle(screenshot);
+    setCapturedImage(screenshot);
     setShowPreview(true);
   };
 

@@ -3,7 +3,12 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const Backend_URL= import.meta.env.VITE_BACKEND_URL
+ const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+ const Backend_URL = rawBackendUrl
+   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+     ? rawBackendUrl
+     : `http://${rawBackendUrl}`
+   : "";
 
 function Login() {
   const [username, setUsername] = useState("");
