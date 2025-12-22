@@ -2,30 +2,35 @@ import React, { useState, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
+import logger from "../utils/logger";
 
-const BioStarUrl= import.meta.env.VITE_BIOSTAR_URL
+const BioStarUrl = import.meta.env.VITE_BACKEND_URL
 
 const PhotoCapture = () => {
   const [webcamEnabled, setWebcamEnabled] = useState(true);
   const [employeeId, setEmployeeId] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [webcamKey, setWebcamKey] = useState(0);
   const [searchParams] = useSearchParams();
 
   const webcamRef = React.useRef<Webcam>(null);
 
   useEffect(() => {
     const data = searchParams.get('data');
+   
     if (data) {
       try {
         const decodedData = JSON.parse(atob(data));
         setEmployeeId(decodedData.employeeId);
         setEmail(decodedData.email);
-        
+        setName(decodedData.name);
+
         const expiryTime = new Date(decodedData.expiryTime);
         if (new Date() > expiryTime) {
           setCameraError('Verification link has expired. Please request a new one.');
@@ -44,48 +49,19 @@ const PhotoCapture = () => {
     setWebcamEnabled(false);
   }, []);
 
-  // const cropImageToRectangle = (imageSrc: string): Promise<string> => {
-  //   return new Promise((resolve) => {
-  //     const canvas = document.createElement('canvas');
-  //     const ctx = canvas.getContext('2d')!;
-  //     const img = new Image();
-      
-  //     img.onload = () => {
-  //       const cropWidth = 240;
-  //       const cropHeight = 300;
-  //       canvas.width = cropWidth;
-  //       canvas.height = cropHeight;
-        
-  //       // Calculate center crop area
-  //       const centerX = img.width / 2;
-  //       const centerY = img.height / 2;
-        
-  //       // Draw rectangular crop from center
-  //       ctx.drawImage(
-  //         img,
-  //         centerX - cropWidth/2, centerY - cropHeight/2, cropWidth, cropHeight,
-  //         0, 0, cropWidth, cropHeight
-  //       );
-        
-  //       resolve(canvas.toDataURL('image/jpeg', 0.8));
-  //     };
-      
-  //     img.src = imageSrc;
-  //   });
-  // };
-
+ 
   const handleCapturePhoto = async () => {
     if (!webcamRef.current) return;
 
     const screenshot = webcamRef.current.getScreenshot();
-  // console.log(screenshot)
+    // console.log(screenshot)
     if (!screenshot) {
       console.error('Failed to capture screenshot from webcam');
       setCameraError("Failed to capture image. Please try again.");
       return;
     }
 
-  //  const croppedImage = await cropImageToRectangle(screenshot);
+    //  const croppedImage = await cropImageToRectangle(screenshot);
     setCapturedImage(screenshot);
     setShowPreview(true);
   };
@@ -93,6 +69,9 @@ const PhotoCapture = () => {
   const handleRetry = () => {
     setCapturedImage(null);
     setShowPreview(false);
+    setCameraError(null);
+    setWebcamEnabled(true);
+    setWebcamKey(prev => prev + 1); // Force Webcam component to remount
   };
 
   const handleSubmitPhoto = async () => {
@@ -105,21 +84,28 @@ const PhotoCapture = () => {
         image: capturedImage,
         employeeId,
         email,
+        name,
         timestamp: new Date().toISOString()
       };
 
-      await axios.post(
+      const response = await axios.post(
         `${BioStarUrl}/api/uploadphoto`,
         photoData,
         { headers: { "Content-Type": "application/json" } }
       );
-      
+
+      // Log photo submitted from frontend
+      logger.logPhotoSubmitted(employeeId, name, email);
+     // console.log(response.data);
       setSubmitted(true);
       setWebcamEnabled(false);
-    } catch (error) {
-      console.error("Error uploading photo:", error);
-      console.error('Photo upload failed:', { employeeId, email, error: error instanceof Error ? error.message : String(error) });
+    } catch (error: any) {
+    //  console.error("Error uploading photo:", error);
+    // console.error('Photo upload failed:', { employeeId, email, error: error instanceof Error ? error.message : String(error) });
+    //  console.error("Error response data:", error.response?.data);
+    //  console.error("Error response status:", error.response?.status);
       setCameraError("Failed to upload photo. Please try again.");
+      logger.logPhotoFailed(employeeId, name, email, error.response?.data, error.response?.status);
     } finally {
       setLoading(false);
     }
@@ -140,7 +126,7 @@ const PhotoCapture = () => {
           <p className="text-gray-600 mb-4">Your face verification has been completed successfully.</p>
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-sm text-gray-700">Employee: {employeeId}</p>
-            <p className="text-sm text-gray-500">{email}</p>
+            <p className="text-sm text-gray-500">{email}{name}</p>
           </div>
         </div>
       </div>
@@ -150,8 +136,8 @@ const PhotoCapture = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 p-4">
-        <div className="max-w-md mx-auto text-center">
+      <div className="bg-white shadow-md p-4">
+        <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-1">
             Face Attendance Verification
           </h1>
@@ -162,22 +148,66 @@ const PhotoCapture = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full">
-          {/* Employee Info */}
-          {employeeId && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-700">Employee ID</p>
-                <p className="text-lg font-bold text-gray-900">{employeeId}</p>
-                <p className="text-sm text-gray-600 mt-1">{email}</p>
+      <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+          {/* Employee Info Section */}
+          <div className="p-6 border-r border-gray-100">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Employee Details</h2>
+                <p className="text-sm text-gray-500">Verify your information</p>
               </div>
             </div>
-          )}
-
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Employee Name</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={name}
+                      disabled
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={employeeId}
+                      disabled
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Employee Email</label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={email}
+                      disabled
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+          </div>
+          
           {/* Camera Section */}
-          <div className="relative mb-6">
-            <div className="aspect-[3/4] bg-gray-100 rounded-2xl overflow-hidden shadow-inner relative">
+          <div className="p-6 border-r border-gray-100 flex flex-col">
+          {/* Camera Section */}
+          <div className="flex-1 flex flex-col">
+            <div className="relative flex-1 bg-gray-100 rounded-2xl overflow-hidden">
               {cameraError ? (
                 <div className="absolute inset-0 flex items-center justify-center p-4">
                   <div className="text-center">
@@ -191,9 +221,9 @@ const PhotoCapture = () => {
                 </div>
               ) : showPreview && capturedImage ? (
                 <>
-                  <img 
-                    src={capturedImage} 
-                    alt="Captured preview" 
+                  <img
+                    src={capturedImage}
+                    alt="Captured preview"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute bottom-4 left-4 right-4">
@@ -207,6 +237,7 @@ const PhotoCapture = () => {
               ) : webcamEnabled ? (
                 <>
                   <Webcam
+                    key={webcamKey}
                     audio={false}
                     ref={webcamRef}
                     screenshotFormat="image/jpeg"
@@ -249,7 +280,7 @@ const PhotoCapture = () => {
 
           {/* Action Buttons */}
           {showPreview ? (
-            <div className="flex gap-3">
+            <div className="my-2 flex gap-3">
               <button
                 onClick={handleRetry}
                 className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
@@ -277,7 +308,7 @@ const PhotoCapture = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>Save Attendance</span>
+                    <span>Save</span>
                   </>
                 )}
               </button>
@@ -286,7 +317,7 @@ const PhotoCapture = () => {
             <button
               onClick={handleCapturePhoto}
               disabled={!employeeId || !webcamEnabled || !!cameraError}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="my-2 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -295,8 +326,47 @@ const PhotoCapture = () => {
               <span>Capture Photo</span>
             </button>
           )}
+          </div>
+          
+          {/* Instructions Section */}
+          <div className="p-6 overflow-hidden p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Photo Guidelines
+            </h3>
+         
+          <div className="space-y-4 flex-1">
+            <div className="flex items-start">
+              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                1
+              </span>
+              <p className="text-sm text-gray-600">Allow camera access when prompted in your browser</p>
+            </div>
+            <div className="flex items-start">
+              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                2
+              </span>
+              <p className="text-sm text-gray-600">Position your face within the frame</p>
+            </div>
+            <div className="flex items-start">
+              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                3
+              </span>
+              <p className="text-sm text-gray-600">Ensure good lighting and no obstructions</p>
+            </div>
+            <div className="flex items-start">
+              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                4
+              </span>
+              <p className="text-sm text-gray-600">Click 'Capture' and verify image clarity before submitting</p>
+            </div>
+          </div>
+          </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };

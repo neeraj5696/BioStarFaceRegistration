@@ -13,12 +13,22 @@ class AppLogger {
     }
   }
 
-  getLogFileName() {
+  getDailyFolder() {
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}.log`;
+    const dailyFolder = path.join(this.logsDir, `${year}-${month}-${day}`);
+    
+    if (!fs.existsSync(dailyFolder)) {
+      fs.mkdirSync(dailyFolder, { recursive: true });
+    }
+    
+    return dailyFolder;
+  }
+
+  getLogFileName() {
+    return 'activity.log';
   }
 
   getTimestamp() {
@@ -34,8 +44,9 @@ class AppLogger {
 
   writeLog(level, message, data = null) {
     const timestamp = this.getTimestamp();
+    const dailyFolder = this.getDailyFolder();
     const logFileName = this.getLogFileName();
-    const logFilePath = path.join(this.logsDir, logFileName);
+    const logFilePath = path.join(dailyFolder, logFileName);
     
     let logMessage = `[${timestamp}] [${level}] ${message}`;
     
@@ -65,6 +76,67 @@ class AppLogger {
 
   warning(message, data = null) {
     this.writeLog('WARNING', message, data);
+  }
+
+  // Specific activity logging methods
+  logUserListFetched(count, username = null) {
+    const message = `User list fetched successfully`;
+    const data = {
+      totalUsers: count,
+      username: username || 'System'
+    };
+    this.success(message, data);
+  }
+
+  logEmailSent(employeeCount, employeeNames = []) {
+    const message = `Verification email sent to ${employeeCount} employee(s)`;
+    const data = {
+      count: employeeCount,
+      employees: employeeNames.map(emp => ({
+        id: emp.id || emp.employeeId,
+        name: emp.name,
+        email: emp.email
+      }))
+    };
+    this.success(message, data);
+  }
+
+  logPhotoReceived(userId, userName, email = null) {
+    const message = `Photo received from user`;
+    const data = {
+      userId: userId,
+      userName: userName,
+      email: email
+    };
+    this.info(message, data);
+  }
+
+  logPhotoSubmitted(userId, userName, email = null) {
+    const message = `Photo submitted by user`;
+    const data = {
+      userId: userId,
+      userName: userName,
+      email: email
+    };
+    this.info(message, data);
+  }
+
+  logPhotoUpdated(userId, userName, email = null) {
+    const message = `Photo updated successfully`;
+    const data = {
+      userId: userId,
+      userName: userName,
+      email: email
+    };
+    this.success(message, data);
+  }
+
+  logLoginSuccess(username) {
+    const message = `Login successful`;
+    const data = {
+      username: username
+    };
+    this.success(message, data);
   }
 }
 

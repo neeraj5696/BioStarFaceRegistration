@@ -1,8 +1,8 @@
-//const { connectDB, sql } = require("../model/db");
 const nodemailer = require("nodemailer");
 const loginToBioStar = require("../services/Loginservices");
 const https = require("https");
 const axios = require("axios");
+const logger = require("../utils/logger");
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
@@ -13,11 +13,14 @@ const SMTPUSN = process.env.SMTPUSN;
 const SMTPPW = process.env.SMTPPW;
 
 const searchEmployees = async (req, res) => {
+
+  const { username, password } = req.body
+
   try {
     const sessionId = await loginToBioStar({
       biostarUrl: process.env.BIOSTAR_URL,
-      loginId: process.env.BIOSTAR_LOGIN_ID,
-      password: process.env.BIOSTAR_PASSWORD,
+      loginId: username,
+      password: password,
       httpsAgent,
     });
 
@@ -34,6 +37,9 @@ const searchEmployees = async (req, res) => {
 
     const users = result.data?.UserCollection || [];
 
+    // Log user list fetched
+    logger.logUserListFetched(users.length, username);
+
     res.status(200).json({
       users,
     });
@@ -48,15 +54,14 @@ const searchEmployees = async (req, res) => {
 
 const sendVerificationEmail = async (req, res) => {
   try {
-    const { employeeId, email } = req.body;
+    const { employeeId, email, name } = req.body;
 
-    if (!employeeId || !email) {
+    if (!employeeId || !email || !name) {
       return res
         .status(400)
-        .json({ message: "Employee ID and email are required" });
+        .json({ message: "Employee ID and email and name are required" });
     }
 
-    // await connectDB();
 
     // Create encoded data for verification link
     const createdTime = new Date().toISOString();
@@ -65,6 +70,7 @@ const sendVerificationEmail = async (req, res) => {
     const verificationData = {
       employeeId,
       email,
+      name,
       createdTime,
       expiryTime,
     };
@@ -72,20 +78,6 @@ const sendVerificationEmail = async (req, res) => {
     const base64EncodedData = Buffer.from(
       JSON.stringify(verificationData)
     ).toString("base64");
-
-    // Fetch SMTP credentials from database
-    // const smtpQuery = `SELECT [SMTPSRVADR], [SMTPSRVPT], [SMTPUSN], [SMTPPW], [SMTPSEC]
-    //                    FROM [BioStar2_aMay].[dbo].[TMP_T_ALMSMTPSET]
-    //                    WHERE [NM] = 'smtp-mail'`;
-
-    // const smtpResult = await sql.query(smtpQuery);
-    // console.log(smtpResult)
-
-    // if (smtpResult.recordset.length === 0) {
-    //   return res.status(500).json({ message: "SMTP configuration not found" });
-    // }
-
-    // const smtpConfig = smtpResult.recordset[0];
 
     // Create transporter
     const transporter = nodemailer.createTransport({
@@ -115,13 +107,15 @@ const sendVerificationEmail = async (req, res) => {
         <p>Please click the link below to complete your face registration verification:</p>
         <a href="${verificationLink}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Complete Verification</a>
         <p>Or copy and paste this link in your browser:</p>
-        <p>${verificationLink}</p>
         <p>This link will expire in 24 hours.</p>
       `,
     };
 
     // Send email
     await transporter.sendMail(mailOptions);
+
+    // Log email sent
+    logger.logEmailSent(1, [{ id: employeeId, name: name, email: email }]);
 
     res.json({
       message: "Verification email sent successfully",

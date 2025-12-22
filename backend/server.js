@@ -52,21 +52,55 @@ app.use("/api/auth", authRouter);
 //HR login page
 
 app.post("/login", authRouter);
-const { connectDB } = require("./model/db");
-const {
-  searchEmployees,
-  sendVerificationEmail,
-} = require("./controller/userlist");
 
-const { verifyToken, upload } = require("./controller/verification");
-const { uploadPhoto } = require("./services/photoupload");
-const { sql } = require("./model/db");
+const {
+  searchEmployees, sendVerificationEmail} = require("./controller/userlist");
+
+
+const {upload, uploadPhoto } = require("./services/photoupload");
+const logger = require("./utils/logger");
+
 
 //Employee endpoints
-app.get("/api/employees", searchEmployees);
+//app.get("api/employees", searchEmployees);
+app.post("/api/employees", searchEmployees);
 app.post("/api/send-email", sendVerificationEmail);
 
-app.post("/api/uploadphoto", upload.single("image"), uploadPhoto);
+app.post("/api/uploadphoto",  uploadPhoto);
+
+// Frontend logging endpoint
+app.post("/api/log", (req, res) => {
+  try {
+    const { level, message, data, timestamp, userAgent } = req.body;
+    
+    // Log to backend logger
+    const logMessage = `[FRONTEND] ${message}`;
+    const logData = {
+      ...data,
+      userAgent: userAgent,
+      frontendTimestamp: timestamp
+    };
+    
+    switch (level) {
+      case 'SUCCESS':
+        logger.success(logMessage, logData);
+        break;
+      case 'ERROR':
+        logger.error(logMessage, logData);
+        break;
+      case 'WARNING':
+        logger.warning(logMessage, logData);
+        break;
+      default:
+        logger.info(logMessage, logData);
+    }
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    // Don't fail the request if logging fails
+    res.status(200).json({ success: false, error: error.message });
+  }
+});
 
 //Serve uploaded files
 app.use("/uploads", express.static("uploads"));

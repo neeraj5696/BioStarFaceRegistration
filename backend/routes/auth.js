@@ -2,6 +2,7 @@ const express = require("express");
 require("dotenv").config();
 const axios = require("axios");
 const crypto = require("crypto");
+const logger = require("../utils/logger");
 const biostarturl = process.env.BIOSTAR_URL;
 const https = require("https");
 
@@ -11,14 +12,7 @@ const httpsAgent = new https.Agent({
 
 const router = express.Router();
 
-const username = process.env.HR_USERNAME;
-const password = process.env.HR_PASSWORD;
 
-if (!username || !password) {
-  throw new Error(
-    "HR_USERNAME and HR_PASSWORD must to be set in environment variables"
-  );
-}
 
 // CSRF token generation endpoint
 router.get("/csrf-token", (req, res) => {
@@ -76,6 +70,9 @@ router.post("/login", async (req, res) => {
     );
 
     const sessionId = response.headers["bs-session-id"];
+
+    // Log successful login
+    logger.logLoginSuccess(username);
 
     res.status(200).json({
       message: "Login successful",

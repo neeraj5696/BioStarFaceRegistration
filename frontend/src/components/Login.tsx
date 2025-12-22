@@ -53,12 +53,10 @@ function Login() {
           withCredentials: true
         }
       );
-      if( response.status === 200){
-        console.log(response)
-      }
+      
       if (response.data.message === "Login successful") {
         navigate("/dashboard", {
-          state: { responseData: response.data},
+          state: { responseData: response.data, username, password},
         });
       }
     } catch (error: any) {

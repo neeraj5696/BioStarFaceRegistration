@@ -1,6 +1,9 @@
 const axios = require("axios");
 const https = require("https");
+const multer = require('multer');
+const path = require('path');
 const loginToBioStar = require("./Loginservices");
+const logger = require("../utils/logger");
 
 // Create HTTPS agent to handle self-signed certificates
 const httpsAgent = new https.Agent({
@@ -9,7 +12,12 @@ const httpsAgent = new https.Agent({
 
 const uploadPhoto = async (req, res) => {
   try {
-    const { employeeId, email } = req.body;
+    const { employeeId, email, name } = req.body;
+
+    // Log photo received
+    if (employeeId && name) {
+      logger.logPhotoReceived(employeeId, name, email);
+    }
 
     let sessionId;
     try {
@@ -64,49 +72,6 @@ const uploadPhoto = async (req, res) => {
         });
       }
 
-
-      // let checkingimage;
-      // try {
-      //   checkingimage = await axios.put(
-      //     `${process.env.BIOSTAR_URL}/api/users/check/upload_picture`,
-      //     {
-      //       User: {
-      //         credentials: {
-      //           visualFaces: [
-      //             {
-      //               template_ex_normalized_image: cleanImage,
-      //             },
-      //           ],
-      //         },
-      //       },
-      //     },
-      //     {
-      //       headers: {
-      //         "bs-session-id": sessionId,
-      //         "Content-Type": "application/json",
-      //       },
-      //       httpsAgent,
-      //     }
-      //   );
-
-      //   console.log("Checking image response:", {
-      //     status: checkingimage.status,
-      //     data: checkingimage.data,
-      //   });
-      // } catch (checkError) {
-      //   console.error(
-      //     "Error checking image before update:",
-      //     checkError.message,
-      //     checkError.response
-      //   );
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: "Image check failed before updating user",
-      //     error: checkError.message,
-      //     details: checkError.response?.data || null,
-      //   });
-      // }
-
       const updateResponse = await axios.put(
         `${process.env.BIOSTAR_URL}/api/users/${userId}`,
         {
@@ -137,6 +102,9 @@ const uploadPhoto = async (req, res) => {
           httpsAgent,
         }
       );
+         // Log photo updated successfully
+      const userName = req.body.name || 'Unknown';
+      logger.logPhotoUpdated(req.body.employeeId, userName, req.body.email);
 
       res.status(200).json({
         data: {
@@ -144,6 +112,9 @@ const uploadPhoto = async (req, res) => {
           message: "Photo uploaded and face updated successfully",
           data: updateResponse.data,
           employeeId: req.body.employeeId,
+          status: updateResponse.status,
+          message: updateResponse.data.message,
+          data: updateResponse.data.data
         },
       });
     } catch (updateError) {
@@ -168,4 +139,35 @@ const uploadPhoto = async (req, res) => {
   }
 };
 
-module.exports = { uploadPhoto };
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const fs = require('fs');
+    const dir = 'uploads/photos/';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `face-${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 9 * 1024 * 1024, // 9MB limit
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
+
+module.exports = { uploadPhoto, upload };
