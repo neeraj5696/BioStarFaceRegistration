@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 require("dotenv").config();
 const Frontend_Url = process.env.FRONTEND_URL;
 
@@ -17,7 +18,8 @@ console.log("ENV loaded:", {
 //middleware
 app.use(
   cors({
-    origin: Frontend_Url, // Your frontend URL
+    // Allow configured frontend URL; fall back to reflecting the request origin
+    origin: Frontend_Url || true,
     methods: ["GET", "POST", "PUT"],
     credentials: true,
     optionsSuccessStatus: 200,
@@ -35,15 +37,6 @@ app.use((req, res, next) => {
     console.log("Request body keys:", Object.keys(req.body));
   }
   next();
-});
-
-app.get('/', (req, res) => {
-  res.send('Hello, this is the home page!');
-});
-
-// POST request for "/"
-app.post('/', (req, res) => {
-  res.send('POST request received at /');
 });
 
 const authRouter = require("./routes/auth");
@@ -105,12 +98,20 @@ app.post("/api/log", (req, res) => {
 //Serve uploaded files
 app.use("/uploads", express.static("uploads"));
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, "0.0.0.0", () => {
-    console.log(`Server is running on port ${port}`);
-  });
-}
+// Serve frontend build (dist) - must come after API routes
+const distPath = path.join(__dirname, "dist");
+app.use(express.static(distPath));
+
+// SPA fallback: send index.html for any non-API route
+// Use regex to avoid Express 5 path-to-regexp "*" issue
+app.get(/^(?!\/api).*$/, (req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
+});
+
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server is running on port ${port}`);
+});
 
 // Export for Vercel
 module.exports = app;

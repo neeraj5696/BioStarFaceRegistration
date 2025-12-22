@@ -94,8 +94,9 @@ const sendVerificationEmail = async (req, res) => {
     });
 
     // Email content with encoded verification link
-    const frontendUrl = process.env.FRONTEND_URL;
-    const verificationLink = `${frontendUrl}/capture?data=${base64EncodedData}`;
+    // Always use the current host (frontend is served by backend)
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const verificationLink = `${baseUrl}/capture?data=${base64EncodedData}`;
 
     const mailOptions = {
       from: SMTPUSN,
