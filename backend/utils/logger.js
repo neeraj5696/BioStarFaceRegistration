@@ -3,7 +3,10 @@ const path = require('path');
 
 class AppLogger {
   constructor() {
-    this.logsDir = path.join(__dirname, '../logs');
+    // When packaged with pkg, __dirname points to the read-only snapshot.
+    // Use the executable's directory instead so logs can be written.
+    const baseDir = process.pkg ? path.dirname(process.execPath) : path.join(__dirname, '..');
+    this.logsDir = path.join(baseDir, 'logs');
     this.ensureLogDirectory();
   }
 

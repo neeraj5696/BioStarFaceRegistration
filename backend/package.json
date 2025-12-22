@@ -13,13 +13,41 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "pkg:win": "pkg -t node18-win-x64 .",
+    "pkg:linux": "pkg -t node18-linux-x64 ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "pkg": {
+    "scripts": [
+      "server.js",
+      "node_modules/axios/dist/node/axios.cjs"
+    ],
+    "assets": [
+      "routes/**/*",
+      "controller/**/*",
+      "services/**/*",
+      "utils/**/*",
+      "model/**/*",
+      "uploads/**/*",
+      "vercel.json",
+      "LOGGING.md",
+      "dist/**/*",
+      "node_modules/axios/dist/**/*"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
 }
