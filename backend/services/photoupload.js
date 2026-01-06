@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const loginToBioStar = require("./Loginservices");
 const logger = require("../utils/logger");
+const { markEnrollmentSuccess } = require('../controller/history');
 
 // Create HTTPS agent to handle self-signed certificates
 const httpsAgent = new https.Agent({
@@ -105,6 +106,9 @@ const uploadPhoto = async (req, res) => {
          // Log photo updated successfully
       const userName = req.body.name || 'Unknown';
       logger.logPhotoUpdated(req.body.employeeId, userName, req.body.email);
+      
+      // Mark enrollment as success
+      markEnrollmentSuccess(req.body.employeeId);
 
       res.status(200).json({
         data: {

@@ -1,9 +1,9 @@
-const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-const Backend_URL = rawBackendUrl
-  ? /^(https?:\/\/)/i.test(rawBackendUrl)
-    ? rawBackendUrl
-    : `http://${rawBackendUrl}`
-  : "";
+// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+// const Backend_URL = rawBackendUrl
+//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+//     ? rawBackendUrl
+//     : `http://${rawBackendUrl}`
+//   : "";
 
 interface LogData {
   [key: string]: any;
@@ -12,7 +12,7 @@ interface LogData {
 class FrontendLogger {
   private logToBackend(level: string, message: string, data: LogData | null = null) {
     // Send log to backend API endpoint
-    fetch(`${Backend_URL}/api/log`, {
+    fetch(`/api/log`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

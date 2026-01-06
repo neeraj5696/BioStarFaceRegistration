@@ -1,5 +1,5 @@
 const axios = require("axios");
-require('dotenv').config();
+//require('dotenv').config();
 const https = require("https");
 
 const biostarUrl = process.env.BIOSTAR_URL;

@@ -4,7 +4,7 @@ import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import logger from "../utils/logger";
 
-const BioStarUrl = import.meta.env.VITE_BACKEND_URL
+// const BioStarUrl = import.meta.env.VITE_BACKEND_URL
 
 const PhotoCapture = () => {
   const [webcamEnabled, setWebcamEnabled] = useState(true);
@@ -23,7 +23,7 @@ const PhotoCapture = () => {
 
   useEffect(() => {
     const data = searchParams.get('data');
-   
+
     if (data) {
       try {
         const decodedData = JSON.parse(atob(data));
@@ -49,7 +49,7 @@ const PhotoCapture = () => {
     setWebcamEnabled(false);
   }, []);
 
- 
+
   const handleCapturePhoto = async () => {
     if (!webcamRef.current) return;
 
@@ -88,22 +88,25 @@ const PhotoCapture = () => {
         timestamp: new Date().toISOString()
       };
 
-      const response = await axios.post(
-        `${BioStarUrl}/api/uploadphoto`,
+      // const response = 
+      await axios.post(
+        `/api/uploadphoto`,
         photoData,
         { headers: { "Content-Type": "application/json" } }
       );
 
+
+
       // Log photo submitted from frontend
       logger.logPhotoSubmitted(employeeId, name, email);
-     // console.log(response.data);
+      // console.log(response.data);
       setSubmitted(true);
       setWebcamEnabled(false);
     } catch (error: any) {
-    //  console.error("Error uploading photo:", error);
-    // console.error('Photo upload failed:', { employeeId, email, error: error instanceof Error ? error.message : String(error) });
-    //  console.error("Error response data:", error.response?.data);
-    //  console.error("Error response status:", error.response?.status);
+      //  console.error("Error uploading photo:", error);
+      // console.error('Photo upload failed:', { employeeId, email, error: error instanceof Error ? error.message : String(error) });
+      //  console.error("Error response data:", error.response?.data);
+      //  console.error("Error response status:", error.response?.status);
       setCameraError("Failed to upload photo. Please try again.");
       logger.logPhotoFailed(employeeId, name, email, error.response?.data, error.response?.status);
     } finally {
@@ -151,19 +154,19 @@ const PhotoCapture = () => {
       <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-          {/* Employee Info Section */}
-          <div className="p-6 border-r border-gray-100">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            {/* Employee Info Section */}
+            <div className="p-6 border-r border-gray-100">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">Employee Details</h2>
+                  <p className="text-sm text-gray-500">Verify your information</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">Employee Details</h2>
-                <p className="text-sm text-gray-500">Verify your information</p>
-              </div>
-            </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employee Name</label>
@@ -176,7 +179,7 @@ const PhotoCapture = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
                   <div className="relative">
@@ -188,7 +191,7 @@ const PhotoCapture = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employee Email</label>
                   <div className="relative">
@@ -201,172 +204,172 @@ const PhotoCapture = () => {
                   </div>
                 </div>
               </div>
-          </div>
-          
-          {/* Camera Section */}
-          <div className="p-6 border-r border-gray-100 flex flex-col">
-          {/* Camera Section */}
-          <div className="flex-1 flex flex-col">
-            <div className="relative flex-1 bg-gray-100 rounded-2xl overflow-hidden">
-              {cameraError ? (
-                <div className="absolute inset-0 flex items-center justify-center p-4">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
+            </div>
+
+            {/* Camera Section */}
+            <div className="p-6 border-r border-gray-100 flex flex-col">
+              {/* Camera Section */}
+              <div className="flex-1 flex flex-col">
+                <div className="relative flex-1 bg-gray-100 rounded-2xl overflow-hidden">
+                  {cameraError ? (
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                        </div>
+                        <p className="text-red-600 text-sm font-medium">{cameraError}</p>
+                      </div>
                     </div>
-                    <p className="text-red-600 text-sm font-medium">{cameraError}</p>
-                  </div>
+                  ) : showPreview && capturedImage ? (
+                    <>
+                      <img
+                        src={capturedImage}
+                        alt="Captured preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <div className="bg-black bg-opacity-50 rounded-lg p-2">
+                          <p className="text-white text-xs text-center font-medium">
+                            Review your photo
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : webcamEnabled ? (
+                    <>
+                      <Webcam
+                        key={webcamKey}
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        className="w-full h-full object-cover"
+                        onUserMediaError={handleCameraError}
+                        mirrored={true}
+                        videoConstraints={{
+                          width: 480,
+                          height: 640,
+                          facingMode: "user"
+                        }}
+                      />
+                      {/* Face Guide Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-48 h-60 border-2 border-white border-dashed rounded-full opacity-50"></div>
+                      </div>
+                      {/* Instructions Overlay */}
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <div className="bg-black bg-opacity-50 rounded-lg p-2">
+                          <p className="text-white text-xs text-center font-medium">
+                            Position your face inside the frame
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-600 text-sm">Camera disabled</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : showPreview && capturedImage ? (
-                <>
-                  <img
-                    src={capturedImage}
-                    alt="Captured preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="bg-black bg-opacity-50 rounded-lg p-2">
-                      <p className="text-white text-xs text-center font-medium">
-                        Review your photo
-                      </p>
-                    </div>
-                  </div>
-                </>
-              ) : webcamEnabled ? (
-                <>
-                  <Webcam
-                    key={webcamKey}
-                    audio={false}
-                    ref={webcamRef}
-                    screenshotFormat="image/jpeg"
-                    className="w-full h-full object-cover"
-                    onUserMediaError={handleCameraError}
-                    mirrored={true}
-                    videoConstraints={{
-                      width: 480,
-                      height: 640,
-                      facingMode: "user"
-                    }}
-                  />
-                  {/* Face Guide Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-48 h-60 border-2 border-white border-dashed rounded-full opacity-50"></div>
-                  </div>
-                  {/* Instructions Overlay */}
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="bg-black bg-opacity-50 rounded-lg p-2">
-                      <p className="text-white text-xs text-center font-medium">
-                        Position your face inside the frame
-                      </p>
-                    </div>
-                  </div>
-                </>
+              </div>
+
+              {/* Action Buttons */}
+              {showPreview ? (
+                <div className="my-2 flex gap-3">
+                  <button
+                    onClick={handleRetry}
+                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Retry</span>
+                  </button>
+                  <button
+                    onClick={handleSubmitPhoto}
+                    disabled={loading}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {loading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Save</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-gray-600 text-sm">Camera disabled</p>
-                  </div>
-                </div>
+                <button
+                  onClick={handleCapturePhoto}
+                  disabled={!employeeId || !webcamEnabled || !!cameraError}
+                  className="my-2 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Capture Photo</span>
+                </button>
               )}
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          {showPreview ? (
-            <div className="my-2 flex gap-3">
-              <button
-                onClick={handleRetry}
-                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            {/* Instructions Section */}
+            <div className="p-6 overflow-hidden p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Retry</span>
-              </button>
-              <button
-                onClick={handleSubmitPhoto}
-                disabled={loading}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Submitting...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Save</span>
-                  </>
-                )}
-              </button>
+                Photo Guidelines
+              </h3>
+
+              <div className="space-y-4 flex-1">
+                <div className="flex items-start">
+                  <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                    1
+                  </span>
+                  <p className="text-sm text-gray-600">Allow camera access when prompted in your browser</p>
+                </div>
+                <div className="flex items-start">
+                  <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                    2
+                  </span>
+                  <p className="text-sm text-gray-600">Position your face within the frame</p>
+                </div>
+                <div className="flex items-start">
+                  <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                    3
+                  </span>
+                  <p className="text-sm text-gray-600">Ensure good lighting and no obstructions</p>
+                </div>
+                <div className="flex items-start">
+                  <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                    4
+                  </span>
+                  <p className="text-sm text-gray-600">Click 'Capture' and verify image clarity before submitting</p>
+                </div>
+              </div>
             </div>
-          ) : (
-            <button
-              onClick={handleCapturePhoto}
-              disabled={!employeeId || !webcamEnabled || !!cameraError}
-              className="my-2 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>Capture Photo</span>
-            </button>
-          )}
-          </div>
-          
-          {/* Instructions Section */}
-          <div className="p-6 overflow-hidden p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Photo Guidelines
-            </h3>
-         
-          <div className="space-y-4 flex-1">
-            <div className="flex items-start">
-              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
-                1
-              </span>
-              <p className="text-sm text-gray-600">Allow camera access when prompted in your browser</p>
-            </div>
-            <div className="flex items-start">
-              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
-                2
-              </span>
-              <p className="text-sm text-gray-600">Position your face within the frame</p>
-            </div>
-            <div className="flex items-start">
-              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
-                3
-              </span>
-              <p className="text-sm text-gray-600">Ensure good lighting and no obstructions</p>
-            </div>
-            <div className="flex items-start">
-              <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
-                4
-              </span>
-              <p className="text-sm text-gray-600">Click 'Capture' and verify image clarity before submitting</p>
-            </div>
-          </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };

@@ -1,37 +1,115 @@
-import { useState, useEffect, useMemo } from "react";
-import { Search, User,Users, Mail, Send, X, Shield, ChevronDown } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Search,
+  User,
+  Users,
+  Mail,
+  Send,
+  X,
+  Shield,
+  ChevronDown,
+ 
+  History as HistoryIcon,
+} from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import {useLocation} from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import logger from "../utils/logger";
+import BulkEmailSender from "./BulkEmailSender";
 
+// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+// const BioStarUrl = rawBackendUrl
+//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+//     ? rawBackendUrl
+//     : `http://${rawBackendUrl}`
+//   : "";
 
-const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-const BioStarUrl = rawBackendUrl
-  ? /^(https?:\/\/)/i.test(rawBackendUrl)
-    ? rawBackendUrl
-    : `http://${rawBackendUrl}`
-  : "";
-
+interface UserGroup {
+  id: string;
+  name: string;
+}
 interface Employee {
   id: string;
   name: string;
   email: string;
   login_id: string;
   password: string;
+  department: string;
+  user_group_id: UserGroup;
 }
 
+// Utility to get user initials (first letters of up to 2 names)
+function getInitials(name: string) {
+  if (!name) return "";
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const toTitleCase = (s: string) =>
+  s.replace(
+    /\w\S*/g,
+    (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
+  );
+
 const SearchEmp = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [totaluser, setTotaluser] = useState("");
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
   const [showSelected, setShowSelected] = useState(false);
-  const [displayLimit, setDisplayLimit] = useState(200);
+  const [displayLimit, setDisplayLimit] = useState(500);
+  const [showBulkSender, setShowBulkSender] = useState(false);
+  const [bulkFilterType, setBulkFilterType] = useState<"all" | "id10plus">(
+    "all"
+  );
   const location = useLocation();
-  const { username, password } = location.state || {}
+  const { username, password } = location.state || {};
+  const [department, setDepartment] = useState<string[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [usergrouplist, setUsergrouplist] = useState<string[]>([]);
+  const [selectedUserGroup, setSelectedUserGroup] = useState<string>("");
+  const [showValidOnly, setShowValidOnly] = useState(false);
+
+  // Count employees with ID >= 10 digits
+  const employeesWithLongId = useMemo(() => {
+    return allEmployees.filter(
+      (emp) => typeof emp.id === "string" && emp.id.length >= 10
+    );
+  }, [allEmployees]);
+
+  //for dropdown department list
+
+  useEffect(() => {
+    const departmentlist = [
+      ...new Set(
+        allEmployees
+          .map((list) => list.department)
+          .filter((dep) => dep && dep !== "N/A")
+      ),
+    ];
+    setDepartment(departmentlist);
+  }, [allEmployees]);
+
+  // for user group list,
+
+  useEffect(() => {
+    const userlist = [
+      ...new Set(
+        allEmployees
+          .map((list) => list.user_group_id?.name)
+          .filter((name) => name && name !== "N/A")
+      ),
+    ];
+
+    setUsergrouplist(userlist);
+  }, [allEmployees]);
+
+  // for search filter user_group_id.name
 
   // Optimize: Only render first N employees to prevent browser lag
   const displayedEmployees = useMemo(() => {
@@ -40,34 +118,36 @@ const SearchEmp = () => {
 
   const hasMoreEmployees = filteredEmployees.length > displayLimit;
 
-
-  const fetchEmployees = async () => {
-
+  const fetchEmployees = useCallback(async () => {
     let response = null;
     setLoading(true);
     try {
-      response = await axios.post(`${BioStarUrl}/api/employees`, {
+      response = await axios.post(`/api/employees`, {
         username,
-        password
+        password,
       });
-     
-      if (response.data.status == 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
-      const data = await response.data;
-     
+      const users = await response.data;
 
-      if (data.users && data.users.rows && Array.isArray(data.users.rows)) {
-        const mappedEmployees = data.users.rows.map((emp: any) => ({
-          id: emp.user_id,
+      //Setting the total user Count , fetch from api, not based on total user count fetched in frontend,
+      const totalUser = await users.data?.total;
+      setTotaluser(totalUser);
+
+      // mapping the detaisl into state variable
+      if (users.data && users.data.rows && Array.isArray(users.data.rows)) {
+        const mappedEmployees = users.data.rows.map((emp: any) => ({
+          id: emp.id,
           name: emp.name,
           email: emp.email || "",
+          department: emp.department,
+          user_group_id: emp.user_group_id,
         }));
         setAllEmployees(mappedEmployees);
+
         setFilteredEmployees(mappedEmployees);
-        
+
         // Log user list fetched
+
         logger.logUserListFetched(mappedEmployees.length);
       } else {
         setAllEmployees([]);
@@ -75,33 +155,61 @@ const SearchEmp = () => {
       }
     } catch (error) {
       console.error("Error aa gaya:", error);
-      console.log(response)
+      console.log(response);
       setAllEmployees([]);
       setFilteredEmployees([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [ username, password, setAllEmployees, setFilteredEmployees]);
 
   useEffect(() => {
     fetchEmployees();
   }, []);
 
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredEmployees(allEmployees);
-    } else {
-      const filtered = allEmployees.filter(
-        (emp) =>
-          emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          emp.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    try {
+      let filtered = allEmployees;
+      if (selectedDepartment) {
+        filtered = allEmployees.filter(
+          (emp) => emp?.department === selectedDepartment
+        );
+      } else if (selectedUserGroup) {
+        if (selectedUserGroup === "all") {
+          filtered = allEmployees;
+        } else {
+          filtered = allEmployees.filter(
+            (emp) =>
+              emp?.user_group_id && emp.user_group_id?.name === selectedUserGroup
+          );
+        }
+      } else if (searchTerm) {
+        filtered = allEmployees.filter(
+          (emp) =>
+            emp?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            emp?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            emp?.id?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      if (showValidOnly) {
+        filtered = filtered.filter(
+          (emp) => emp?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emp.email)
+        );
+      }
       setFilteredEmployees(filtered);
+      setDisplayLimit(100);
+    } catch (error) {
+      console.error("Error filtering employees:", error);
+      toast.error("Failed to filter employees. Please try again.");
+      setFilteredEmployees([]);
     }
-    // Reset display limit when search term changes
-    setDisplayLimit(200);
-  }, [searchTerm, allEmployees]);
+  }, [
+    selectedDepartment,
+    selectedUserGroup,
+    searchTerm,
+    allEmployees,
+    showValidOnly,
+  ]);
 
   const handleLoadMore = () => {
     setDisplayLimit((prev) => prev + 200);
@@ -121,26 +229,48 @@ const SearchEmp = () => {
   const handleSendEmail = async () => {
     if (selectedEmployees.length === 0) return;
 
+    // Validate emails
+    const validEmployees = selectedEmployees.filter((emp) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emp.email && emailRegex.test(emp.email);
+    });
+
+    if (validEmployees.length === 0) {
+      toast.error("No valid email addresses found in selected employees");
+      return;
+    }
+
+    if (validEmployees.length < selectedEmployees.length) {
+      toast.error(
+        `${
+          selectedEmployees.length - validEmployees.length
+        } employee(s) skipped due to invalid email`
+      );
+    }
+
     setSendingEmails(true);
     try {
-      const promises = selectedEmployees.map((employee) =>
-        axios.post(`${BioStarUrl}/api/send-email`, {
+      const promises = validEmployees.map((employee) =>
+        axios.post(`/api/send-email`, {
           employeeId: employee.id,
           email: employee.email,
           name: employee.name,
         })
       );
       await Promise.all(promises);
-      
+
       // Log emails sent from frontend
-      logger.logEmailsSent(selectedEmployees.length, selectedEmployees.map(emp => ({
-        id: emp.id,
-        name: emp.name,
-        email: emp.email
-      })));
-      
+      logger.logEmailsSent(
+        validEmployees.length,
+        validEmployees.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          email: emp.email,
+        }))
+      );
+
       toast.success(
-        `Verification emails sent to ${selectedEmployees.length} employee(s)`
+        `Verification emails sent to ${validEmployees.length} employee(s)`
       );
       setSelectedEmployees([]);
     } catch (error) {
@@ -159,63 +289,75 @@ const SearchEmp = () => {
 
   return (
     <>
-    <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg">
-  <div className="max-w-7xl mx-auto px-4 py-3">
-    <div className="flex items-center space-x-3">
-      <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-        <Shield className="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <h1 className="text-lg font-bold text-white">BioStar HR Dashboard</h1>
-        <p className="text-sm text-blue-100">Face Registration Management</p>
-      </div>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white">
+                BioStar HR Dashboard
+              </h1>
+              <p className="text-sm text-blue-100">
+                Face Registration Management
+              </p>
+            </div>
 
-
-  {/* Search Header */}
-                <div className="flex-1 max-w-2xl mx-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search employees..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 sm:pl-11 md:pl-12 pr-3 sm:pr-4 py-2 sm:py-2.5 md:py-3 lg:py-3.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-xs sm:text-sm md:text-base shadow-sm"
-                    />
-                  </div>
+            {/* Search Header - Sticky */}
+            <div className="flex-1 max-w-2xl mx-4">
+              <div className="relative flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search employees..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 sm:pl-11 md:pl-12 pr-3 sm:pr-4 py-2 sm:py-2.5 md:py-3 lg:py-3.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-xs sm:text-sm md:text-base shadow-sm"
+                  />
                 </div>
+                <button
+                  onClick={() => navigate("/history")}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-all"
+                  title="View History"
+                >
+                  <HistoryIcon className="h-8 w-8 text-white" />
+                </button>
+              </div>
+            </div>
 
-      {/* total employee count */}
-      <div className="   rounded-xl  ml-auto">
-        <div className="text-center flex items-center space-x-2">
-          <div className="text-2xl font-bold text-white">{allEmployees.length}</div>
-          <div className="text-xs font-medium text-blue-100/90 uppercase tracking-wider mt-0.5">
-             <Users />
+            {/* total employee count */}
+            <div className="   rounded-xl  ml-auto">
+              <div className="text-center flex items-center space-x-2">
+                <div className="text-2xl font-bold text-white">{totaluser}</div>
+                <div className="text-xs font-medium text-blue-100/90 uppercase tracking-wider mt-0.5">
+                  <Users />
+                </div>
+              </div>
+            </div>
           </div>
-          
         </div>
       </div>
-    </div>
-  </div>
-</div>
-{/* // employee field */}
-      <div className="max-w-7xl mx-auto px-4" >
+      {/* // employee field */}
+      <div className="max-w-7xl mx-auto px-4">
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-2 sm:p-4 lg:p-6 xl:p-8">
           <div className="max-w-[2000px] mx-auto bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          
-
-            <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] sm:h-[calc(100vh-180px)] md:h-[600px] lg:h-[650px] xl:h-[750px] 2xl:h-[850px] relative">
+            <div className="flex flex-col lg:flex-row  h-[90vh] relative">
               {/* Left Panel - Employee List */}
-              <div className={`w-full lg:w-1/2 xl:w-3/5 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col ${showSelected ? 'hidden lg:flex' : 'flex'
-                }`}>
-              
-
+              <div
+                className={`w-full lg:w-1/2 xl:w-4/6 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col overflow-auto ${
+                  showSelected ? "hidden lg:flex" : "flex"
+                }`}
+              >
                 {/* Employee List */}
-                <div className="flex-1 overflow-y-auto bg-gray-50">
+                <div className="flex-1 overflow-y-auto bg-gray-50 overflow-auto ">
                   {loading && (
                     <div className="flex items-center justify-center py-8 sm:py-12">
                       <div className="animate-spin h-6 w-6 sm:h-8 sm:w-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                      <span className="ml-2 sm:ml-3 text-sm sm:text-base text-gray-600">Loading employees...</span>
+                      <span className="ml-2 sm:ml-3 text-sm sm:text-base text-gray-600">
+                        Loading employees...
+                      </span>
                     </div>
                   )}
                   {!loading && filteredEmployees.length === 0 && searchTerm && (
@@ -224,11 +366,84 @@ const SearchEmp = () => {
                       <p className="text-xs sm:text-sm">No employees found</p>
                     </div>
                   )}
+
                   {!loading && filteredEmployees.length > 0 && (
-                    <div className="px-3 sm:px-4 py-2 bg-blue-50 border-b border-blue-100">
-                      <p className="text-xs sm:text-sm text-blue-700 font-medium">
-                        Showing {displayedEmployees.length} of {filteredEmployees.length} employees
-                      </p>
+                    <div className=" z-30 px-3 sm:px-4 py-2 bg-blue-50 border-b border-blue-100 space-y-2">
+                      <div className="flex flex-col sm:flex-row items-center  sm:gap-4 my-3 bg-white p-2 rounded-xl shadow hover:border-blue-400 transition-all">
+                        {
+                          <button
+                            onClick={() => {
+                              if (
+                                selectedEmployees.length ===
+                                filteredEmployees.length
+                              ) {
+                                setSelectedEmployees([]);
+                              } else {
+                                setSelectedEmployees(filteredEmployees);
+                              }
+                            }}
+                            className="min-w-[120px] px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                          >
+                            {selectedEmployees.length ===
+                            filteredEmployees.length
+                              ? "Deselect All"
+                              : "Select All"}
+                          </button>
+                        }
+
+                        <select
+                          value={selectedDepartment}
+                          onChange={(e) =>
+                            setSelectedDepartment(e.target.value)
+                          }
+                          className="min-w-[157px] max-w-[157px] px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                        >
+                          <option value="">
+                            {selectedDepartment ? "Clear Department" : "Select Department"}
+                            </option>
+                          {department.map((item, index) => (
+                            <option key={index} value={item}>
+                              {toTitleCase(item)}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={selectedUserGroup}
+                          onChange={(e) => setSelectedUserGroup(e.target.value)}
+                          className="min-w-[155px] px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                        >
+                          <option value="">
+                            {selectedUserGroup ? "Clear User Group" : "Select User Group"}
+                            </option>
+                          <option value="all">All Users</option>
+                          {usergrouplist.map((item, index) => (
+                            <option key={index} value={item}>
+                              {toTitleCase(item)}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={() => {
+                            setBulkFilterType("id10plus");
+                            setShowBulkSender(true);
+                          }}
+                          className=" flex min-w-[120px] p-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                        >
+                          Student ({employeesWithLongId.length})
+                        </button>
+                        <button
+                          onClick={() => setShowValidOnly(!showValidOnly)}
+                          className={`flex items-center gap-2 px-5 py-2 font-semibold rounded-lg shadow transition-all text-base ${
+                            showValidOnly
+                              ? "bg-green-600 text-white"
+                              : "bg-white text-gray-700 border border-gray-300"
+                          }`}
+                        >
+                          <Mail className="h-5 w-5" />
+                          Valid
+                        </button>
+                      </div>
                     </div>
                   )}
                   {!loading &&
@@ -236,42 +451,57 @@ const SearchEmp = () => {
                       const isSelected = selectedEmployees.some(
                         (emp) => emp.id === employee.id
                       );
+                      const hasValidEmail =
+                        employee.email &&
+                        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email);
                       return (
                         <div
                           key={employee.id}
                           onClick={() => handleEmployeeToggle(employee)}
-                          className={`bg-gradient-to-r from-emerald-50 to-blue-50 mx-2 sm:mx-3 md:mx-4 my-1.5 sm:my-2 p-2.5 sm:p-3 md:p-4 lg:p-5 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl ${isSelected
-                            ? "bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 shadow-md"
-                            : "bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm"
-                            }`}
+                          className={`bg-gradient-to-r from-emerald-50 to-blue-50 mx-2 sm:mx-3 md:mx-4 my-1.5 sm:my-2 p-2.5 sm:p-3 md:p-4 lg:px-5 lg:py-2 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.01] focus:ring-2 focus:ring-blue-400 ${
+                            isSelected
+                              ? "bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 shadow-md"
+                              : "bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                          } ${!hasValidEmail ? "opacity-50" : ""}`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                          <div className="flex items-center py-4 gap-2 sm:gap-3 md:gap-4">
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => handleEmployeeToggle(employee)}
                               className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 flex-shrink-0"
                               onClick={(e) => e.stopPropagation()}
+                              aria-label={`Select ${employee.name}`}
                             />
                             <div
-                              className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold flex-shrink-0 ${isSelected
-                                ? "bg-blue-600"
-                                : "bg-gradient-to-br from-gray-400 to-gray-500"
-                                }`}
+                              className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold flex-shrink-0 ${
+                                isSelected
+                                  ? "bg-blue-600"
+                                  : "bg-gradient-to-br from-gray-400 to-gray-500"
+                              }`}
                             >
-                              {employee.name.charAt(0).toUpperCase()}
+                              {getInitials(employee.name)}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-gray-900 truncate text-xs sm:text-sm md:text-base lg:text-lg">
-                                {employee.name}
+                                {toTitleCase(employee.name)}
                               </p>
-                              <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 font-medium">
-                                ID: {employee.id}
-                              </p>
-                              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 truncate flex items-center gap-1 mt-0.5 sm:mt-1">
-                                <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5 flex-shrink-0" />
-                                {employee.email}
-                              </p>
+                              <div className="flex flex-col sm:flex-row gap-1 sm:gap-4">
+                                <span className="text-[10px] sm:text-xs md:text-sm text-blue-600 font-medium flex items-center">
+                                  <span className="mr-0.5">ID:</span>{" "}
+                                  {employee.id}
+                                </span>
+                                <span
+                                  className={`text-[10px] mb-1 sm:text-xs md:text-sm truncate flex items-center gap-1 ${
+                                    hasValidEmail
+                                      ? "text-gray-600"
+                                      : "text-red-500"
+                                  }`}
+                                >
+                                  <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5 flex-shrink-0" />
+                                  {employee.email || "No email"}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -284,7 +514,9 @@ const SearchEmp = () => {
                         className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
                       >
                         <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
-                        Load More ({filteredEmployees.length - displayLimit} remaining)
+                        Load More ({filteredEmployees.length -
+                          displayLimit}{" "}
+                        remaining)
                       </button>
                     </div>
                   )}
@@ -292,8 +524,11 @@ const SearchEmp = () => {
               </div>
 
               {/* Right Panel - Selected Employees */}
-              <div className={`w-full lg:w-1/2 xl:w-2/5 flex flex-col bg-gradient-to-b from-slate-50 to-white ${showSelected ? 'flex' : 'hidden lg:flex'
-                }`}>
+              <div
+                className={`w-full lg:w-1/2 xl:w-2/6 flex flex-col bg-gradient-to-b from-slate-50 to-white ${
+                  showSelected ? "flex" : "hidden lg:flex"
+                }`}
+              >
                 {/* Selected Header */}
                 <div className="bg-gradient-to-r from-emerald-50 to-blue-50 px-3 py-3 sm:px-4 sm:py-3.5 md:px-6 md:py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
@@ -378,9 +613,9 @@ const SearchEmp = () => {
                   )}
                 </div>
 
-                {/* Send Button */}
+                {/* Send Button - Sticky */}
                 {selectedEmployees.length > 0 && (
-                  <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-white border-t border-gray-200">
+                  <div className="sticky bottom-0 p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-white border-t border-gray-200 shadow-lg">
                     <button
                       onClick={handleSendEmail}
                       disabled={sendingEmails}
@@ -395,7 +630,8 @@ const SearchEmp = () => {
                         <>
                           <Send className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                           <span>
-                            Send Registration Emails ({selectedEmployees.length})
+                            Send Registration Emails ({selectedEmployees.length}
+                            )
                           </span>
                         </>
                       )}
@@ -411,19 +647,25 @@ const SearchEmp = () => {
                   className="lg:hidden fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-200 z-50 flex items-center gap-2"
                 >
                   <User className="h-5 w-5" />
-                  <span className="font-semibold text-sm">{selectedEmployees.length}</span>
+                  <span className="font-semibold text-sm">
+                    {selectedEmployees.length}
+                  </span>
                 </button>
               )}
             </div>
           </div>
         </div>
-
       </div>
 
+      {/* Bulk Email Sender Modal */}
+      {showBulkSender && (
+        <BulkEmailSender
+          employees={filteredEmployees}
+          onClose={() => setShowBulkSender(false)}
+          filterType={bulkFilterType}
+        />
+      )}
     </>
-
-
-
   );
 };
 

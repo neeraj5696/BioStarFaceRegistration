@@ -1,0 +1,126 @@
+netstat -ano | findstr :8081
+
+to kill
+
+taskkill /PID 16668 /F
+
+
+npm run pkg:win --prefix "c:/Project/BioStarFaceRegistration/backend"
+
+cd c:\Project\BioStarFaceRegistration\backend\dist
+.\backend.exe
+
+mkcert --version
+
+
+mkcert -install
+
+C:\Users\neera\OneDrive\Desktop\BioStarFaceRegistration\backend>cd C:\Users\neera\OneDrive\Desktop\BioStarFaceRegistration\backend
+
+mkcert localhost 127.0.0.1 192.168.0.166
+
+
+STEP-BY-STEP: PORT FORWARDING (WINDOWS)
+🔹 STEP 1: Find your router IP
+
+Press Windows + R
+
+Type cmd → press Enter
+
+Run:
+
+ipconfig
+
+
+Look for:
+
+Default Gateway . . . . . : 192.168.0.1
+
+
+(or 192.168.1.1)
+
+👉 This is your router login address
+
+🔹 STEP 2: Login to router
+
+Open Chrome / Edge
+
+Type in address bar:
+
+http://192.168.0.1
+
+
+(or whatever gateway you saw)
+
+Login with router credentials
+(Common ones):
+
+admin / admin
+admin / password
+
+
+(Or written on router sticker)
+
+🔹 STEP 3: Find Port Forwarding menu
+
+After login, look for ANY of these (names differ by router):
+
+Advanced
+
+Advanced Settings
+
+NAT
+
+NAT Forwarding
+
+Virtual Server
+
+Port Forwarding
+
+📌 Common paths:
+
+Advanced → NAT → Port Forwarding
+Advanced → Virtual Server
+Security → NAT → Port Forwarding
+
+🔹 STEP 4: Add Port Forwarding rule
+
+Click Add / New / Create
+
+Fill EXACTLY like this:
+
+Service Name: MERN_APP
+Protocol: TCP
+External Port (Public Port): 5001
+Internal IP (LAN IP): 192.168.0.166
+Internal Port: 5001
+Status: Enable
+
+
+Click Save / Apply
+
+🔹 STEP 5: Reboot router (IMPORTANT)
+
+Click Reboot in router menu
+OR
+
+Power OFF router → wait 10 seconds → Power ON
+
+🔹 STEP 6: Allow port in Windows Firewall
+
+Open Command Prompt as Administrator
+
+netsh advfirewall firewall add rule name="MERN 5001" dir=in action=allow protocol=TCP localport=5001
+
+🔹 STEP 7: Test from outside network
+
+❌ Do NOT test from same Wi-Fi
+Use:
+
+Mobile data
+
+Friend’s Wi-Fi
+
+Open:
+
+http://103.94.67.30:5001/capture?data=eyJlbXBsb3llZUlkIjoiMTAyNDAi...

@@ -9,8 +9,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 console.log("ENV loaded:", {
-  HR_USERNAME: process.env.HR_USERNAME ? "***" : "NOT_SET",
-  HR_PASSWORD: process.env.HR_PASSWORD ? "***" : "NOT_SET",
+  
   BIOSTAR_URL: process.env.BIOSTAR_URL ? "SET" : "NOT_SET",
   Frontend_Url: process.env.FRONTEND_URL 
 });
@@ -47,7 +46,9 @@ app.use("/api/auth", authRouter);
 app.post("/login", authRouter);
 
 const {
-  searchEmployees, sendVerificationEmail} = require("./controller/userlist");
+  searchEmployees, sendVerificationEmail, sendBulkVerificationEmails} = require("./controller/userlist");
+
+const { getHistory } = require('./controller/history');
 
 
 const {upload, uploadPhoto } = require("./services/photoupload");
@@ -58,8 +59,12 @@ const logger = require("./utils/logger");
 //app.get("api/employees", searchEmployees);
 app.post("/api/employees", searchEmployees);
 app.post("/api/send-email", sendVerificationEmail);
+app.post("/api/send-bulk-email", sendBulkVerificationEmails);
 
 app.post("/api/uploadphoto",  uploadPhoto);
+
+// History endpoint
+app.get("/api/history", getHistory);
 
 // Frontend logging endpoint
 app.post("/api/log", (req, res) => {
@@ -99,7 +104,7 @@ app.post("/api/log", (req, res) => {
 app.use("/uploads", express.static("uploads"));
 
 // Serve frontend build (dist) - must come after API routes
-const distPath = path.join(__dirname, "dist");
+const distPath = path.join(__dirname, "dist_frontend");
 app.use(express.static(distPath));
 
 // SPA fallback: send index.html for any non-API route

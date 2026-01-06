@@ -1,0 +1,16 @@
+{
+  "stats": {
+    "totalMailsSent": 1,
+    "successfullyEnrolled": 1,
+    "pendingEnrollment": 0
+  },
+  "history": [
+    {
+      "userId": "2024083001",
+      "name": "NIRAJ KUMAR YADAV",
+      "email": "presales_support@magnum.org.in",
+      "mailSentAt": "2026-01-05T10:16:23.449Z",
+      "status": "success"
+    }
+  ]
+}

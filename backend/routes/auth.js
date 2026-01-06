@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const logger = require("../utils/logger");
 const biostarturl = process.env.BIOSTAR_URL;
 const https = require("https");
+const { Console } = require("console");
 
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
@@ -54,6 +55,7 @@ router.post("/login", async (req, res) => {
       .status(400)
       .json({ message: "Username and password are required" });
   }
+  console.log('CheckPoint_1= OK', username, password)
 
   try {
     const response = await axios.post(
@@ -68,7 +70,7 @@ router.post("/login", async (req, res) => {
         httpsAgent,
       }
     );
-
+   
     const sessionId = response.headers["bs-session-id"];
 
     // Log successful login
