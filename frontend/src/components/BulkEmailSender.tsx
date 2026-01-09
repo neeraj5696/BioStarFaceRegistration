@@ -98,7 +98,7 @@ const BulkEmailSender: React.FC<BulkEmailSenderProps> = ({ employees, onClose, f
       toast.success(`Successfully sent ${success} emails`);
     }
     if (fail > 0) {
-      toast.error(`Failed to send ${fail} emails`);
+      toast.error(`Failed to send ${fail} emails`,{ duration: 5000});
     }
   };
 

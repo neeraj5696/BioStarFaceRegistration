@@ -76,7 +76,7 @@ app.post("/api/log", (req, res) => {
 app.use("/uploads", express.static("uploads"));
 app.use(express.static(path.join(__dirname, "dist_frontend")));
 app.get(/^(?!\/api).*$/, (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+  res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
 });
 
 https.createServer(sslOptions, app).listen(httpsPort, "0.0.0.0", () => {

@@ -59,6 +59,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const response = await axios.post(
+      console.log('biostarturl=', biostarturl) ||
       `${biostarturl}/api/login`,
       {
         User: {
@@ -70,6 +71,8 @@ router.post("/login", async (req, res) => {
         httpsAgent,
       }
     );
+
+    console.log(response)
    
     const sessionId = response.headers["bs-session-id"];
 

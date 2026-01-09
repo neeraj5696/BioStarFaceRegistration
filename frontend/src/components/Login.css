@@ -1,3 +1,32 @@
+.login-body {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+
+}
+
+/* LEFT IMAGE */
+.login-left-image {
+    width: '100%';
+    height: '100%';
+    border-radius: 18px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.login-left-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+
+
+
 .usage-section {
     position: relative;
     background: rgba(255, 255, 255, 0.95);
@@ -27,16 +56,14 @@
     left: -3px;
     right: -3px;
     bottom: -3px;
-    background: conic-gradient(
-        from 0deg,
-        #3b82f6,
-        #8b5cf6,
-        #ec4899,
-        #f59e0b,
-        #10b981,
-        #06b6d4,
-        #3b82f6
-    );
+    background: conic-gradient(from 0deg,
+            #3b82f6,
+            #8b5cf6,
+            #ec4899,
+            #f59e0b,
+            #10b981,
+            #06b6d4,
+            #3b82f6);
     border-radius: 27px;
     z-index: -2;
     animation: rotate-hue 3s linear infinite;
@@ -57,17 +84,22 @@
     0% {
         filter: hue-rotate(0deg);
     }
+
     100% {
         filter: hue-rotate(-360deg);
     }
 }
 
 .usage-section:hover {
-    width: 480px;
-    height: 550px;    
-    padding: 50px 60px;
+    width: 950px;
+    height: 500px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
     justify-content: flex-start;
+}
+
+.usage-section:hover .login-body {
+    opacity: 1;
+    max-height: 600px;
 }
 
 /* Login title */
@@ -99,34 +131,22 @@
 
 /* Login form */
 .login-form {
-    position: absolute;
-    top: 50px;
-    left: 60px;
-    right: 60px;
-    z-index: 10;
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
-    transform: translateY(30px) scale(0.95);
-    pointer-events: none;
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.usage-section:hover .login-form {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: all;
-    max-height: 500px;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Blob animations */
 @keyframes blob {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translate(0, 0) scale(1);
     }
+
     33% {
         transform: translate(30px, -50px) scale(1.1);
     }
+
     66% {
         transform: translate(-20px, 20px) scale(0.9);
     }
