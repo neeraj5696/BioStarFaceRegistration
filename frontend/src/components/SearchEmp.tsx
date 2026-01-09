@@ -17,12 +17,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import logger from "../utils/logger";
 import BulkEmailSender from "./BulkEmailSender";
 
-// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-// const BioStarUrl = rawBackendUrl
-//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
-//     ? rawBackendUrl
-//     : `http://${rawBackendUrl}`
-//   : "";
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+const BioStarUrl = rawBackendUrl
+  ? /^(https?:\/\/)/i.test(rawBackendUrl)
+    ? rawBackendUrl
+    : `http://${rawBackendUrl}`
+  : "";
 
 interface UserGroup {
   id: string;
@@ -126,7 +126,7 @@ const SearchEmp = () => {
     let response = null;
     setLoading(true);
     try {
-      response = await axios.post(`/api/employees`, {
+      response = await axios.post(`${rawBackendUrl}/api/employees`, {
         username,
         password,
       });
@@ -255,7 +255,7 @@ const SearchEmp = () => {
     setSendingEmails(true);
     try {
       const promises = validEmployees.map((employee) =>
-        axios.post(`/api/send-email`, {
+        axios.post(`${rawBackendUrl}/api/send-email`, {
           employeeId: employee.id,
           email: employee.email,
           name: employee.name,
@@ -410,7 +410,7 @@ const SearchEmp = () => {
                   )}
 
                   {!loading && filteredEmployees.length > 0 && (
-                    <div className=" z-30 px-3 sm:px-4 py-2 bg-blue-50 border-b border-blue-100 space-y-2">
+                    <div className=" z-30 px-3 sm:px-4 py-2 bg-blue-50 border-b border-blue-300 space-y-2">
                       <div className="flex flex-col sm:flex-row items-center  sm:gap-4 my-3 bg-white p-2 rounded-xl shadow hover:border-blue-400 transition-all">
                         {
                           <button

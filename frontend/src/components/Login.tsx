@@ -5,12 +5,12 @@ import toast from "react-hot-toast";
 import "./Login.css";
 import { Eye, EyeOff } from "lucide-react";
 
-// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-// const Backend_URL = rawBackendUrl
-//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
-//     ? rawBackendUrl
-//     : `http://${rawBackendUrl}`
-//   : "";
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+const Backend_URL = rawBackendUrl
+  ? /^(https?:\/\/)/i.test(rawBackendUrl)
+    ? rawBackendUrl
+    : `http://${rawBackendUrl}`
+  : "";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -25,7 +25,7 @@ function Login() {
     const fetchCsrfToken = async () => {
       try {
         const response = await axios.get(
-          `/api/auth/csrf-token`,
+          `${rawBackendUrl}/api/auth/csrf-token`,
           {
             withCredentials: true,
           }
@@ -47,7 +47,7 @@ function Login() {
     setLoading(true);
     try {
       const response = await axios.post(
-        `/api/auth/login`,
+        `${rawBackendUrl}/api/auth/login`,
         {
           username,
           password,
@@ -77,6 +77,7 @@ function Login() {
     } catch (error: any) {
       console.log("Error response:", error.response);
       const errorMessage = error.response?.data?.message || "Login failed";
+      console.log(error.response?.message)
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -113,8 +114,8 @@ function Login() {
           <div className="login-form">
             <div className=" ">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  KRMU FACE REGISTRATION 
+                <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  KRMU BIOMETRIC FACE REGISTRATION 
                 </h2>
                 <p className="text-gray-500 mt-2">
                   Enter your credentials to continue

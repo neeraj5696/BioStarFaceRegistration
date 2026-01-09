@@ -7,7 +7,7 @@ const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
-const httpsPort = process.env.HTTPS_PORT || 5001;
+const httpsPort = process.env.HTTPS_PORT || 5000;
 
 // Load mkcert certificates
 const sslOptions = {
@@ -73,11 +73,11 @@ app.post("/api/log", (req, res) => {
   }
 });
 
-app.use("/uploads", express.static("uploads"));
-app.use(express.static(path.join(__dirname, "dist_frontend")));
-app.get(/^(?!\/api).*$/, (req, res) => {
-  res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
-});
+// app.use("/uploads", express.static("uploads"));
+// app.use(express.static(path.join(__dirname, "dist_frontend")));
+// app.get(/^(?!\/api).*$/, (req, res) => {
+//   res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
+// });
 
 https.createServer(sslOptions, app).listen(httpsPort, "0.0.0.0", () => {
   console.log(`🔒 HTTPS Server: https://localhost:${httpsPort}`);
