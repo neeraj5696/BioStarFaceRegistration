@@ -2,7 +2,6 @@ const nodemailer = require("nodemailer");
 const loginToBioStar = require("../services/Loginservices");
 const https = require("https");
 const axios = require("axios");
-const logger = require("../utils/logger");
 const { addMailSent } = require('./history');
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
@@ -65,8 +64,6 @@ const searchEmployees = async (req, res) => {
 
 
 
-
-    logger.logUserListFetched(users1.length, username);
 
     res.status(200).json({
       data,
@@ -220,10 +217,7 @@ const sendVerificationEmail = async (req, res) => {
 
     // Send email
     await transporter.sendMail(mailOptions);
-    transporter.close(); // Close connection after sending
-
-    // Log email sent
-    logger.logEmailSent(1, [{ id: employeeId, name: name, email: email }]);
+    transporter.close();
     
     // Add to history
     addMailSent(employeeId, name, email);
@@ -374,9 +368,6 @@ const sendBulkVerificationEmails = async (req, res) => {
 
     // Close transporter
     transporter.close();
-
-    // Log bulk email sent
-    logger.logEmailSent(results.success.length, results.success);
 
     res.json({
       message: "Bulk email sending completed",

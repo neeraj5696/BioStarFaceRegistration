@@ -2,10 +2,8 @@ const express = require("express");
 require("dotenv").config();
 const axios = require("axios");
 const crypto = require("crypto");
-const logger = require("../utils/logger");
 const biostarturl = process.env.BIOSTAR_URL;
 const https = require("https");
-const { Console } = require("console");
 
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
@@ -55,11 +53,9 @@ router.post("/login", async (req, res) => {
       .status(400)
       .json({ message: "Username and password are required" });
   }
-  console.log('CheckPoint_1= OK', username, password)
 
   try {
     const response = await axios.post(
-      console.log('biostarturl=', biostarturl) ||
       `${biostarturl}/api/login`,
       {
         User: {
@@ -72,12 +68,7 @@ router.post("/login", async (req, res) => {
       }
     );
 
-    console.log(response)
-   
     const sessionId = response.headers["bs-session-id"];
-
-    // Log successful login
-    logger.logLoginSuccess(username);
 
     res.status(200).json({
       message: "Login successful",
