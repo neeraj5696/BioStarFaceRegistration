@@ -1,8 +1,8 @@
 {
   "stats": {
-    "totalMailsSent": 7,
+    "totalMailsSent": 9,
     "successfullyEnrolled": 1,
-    "pendingEnrollment": 6
+    "pendingEnrollment": 8
   },
   "history": [
     {
@@ -52,6 +52,20 @@
       "name": "NIRAJ KUMAR YADAV",
       "email": "presales_support@magnum.org.in",
       "mailSentAt": "2026-01-08T10:15:52.705Z",
+      "status": "pending"
+    },
+    {
+      "userId": "2024083001",
+      "name": "NIRAJ KUMAR YADAV",
+      "email": "presales_support@magnum.org.in",
+      "mailSentAt": "2026-01-12T06:23:54.399Z",
+      "status": "pending"
+    },
+    {
+      "userId": "2025120101",
+      "name": "SONU KUMAR SINGH",
+      "email": "sonusingh801716@gmail.com",
+      "mailSentAt": "2026-01-12T06:24:42.441Z",
       "status": "pending"
     }
   ]

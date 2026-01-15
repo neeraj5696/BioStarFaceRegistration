@@ -27,12 +27,12 @@ interface HistoryData {
   history: HistoryItem[];
 }
 
-const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-const BioStarUrl = rawBackendUrl
-  ? /^(https?:\/\/)/i.test(rawBackendUrl)
-    ? rawBackendUrl
-    : `http://${rawBackendUrl}`
-  : "";
+// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+// const BioStarUrl = rawBackendUrl
+//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+//     ? rawBackendUrl
+//     : `http://${rawBackendUrl}`
+//   : "";
 
 const History = () => {
   //  const navigate = useNavigate();
@@ -50,7 +50,7 @@ const History = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `${rawBackendUrl}/api/history?limit=${limit}&offset=${page * limit}`
+        `/api/history?limit=${limit}&offset=${page * limit}`
       );
       setData(response.data);
       setTotal(response.data.total || 0);
@@ -63,7 +63,7 @@ const History = () => {
   const HandleExcelExport = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${rawBackendUrl}/api/history?limit=20000&offset=0`);
+      const response = await axios.get(`/api/history?limit=20000&offset=0`);
       const allData = response.data.history;
 
       const excelData = allData.map((item: HistoryItem, index: number) => ({

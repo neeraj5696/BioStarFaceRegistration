@@ -5,12 +5,12 @@ import toast from "react-hot-toast";
 import "./Login.css";
 import { Eye, EyeOff } from "lucide-react";
 
-const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-const Backend_URL = rawBackendUrl
-  ? /^(https?:\/\/)/i.test(rawBackendUrl)
-    ? rawBackendUrl
-    : `http://${rawBackendUrl}`
-  : "";
+// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+// const Backend_URL = rawBackendUrl
+//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+//     ? rawBackendUrl
+//     : `http://${rawBackendUrl}`
+//   : "";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -25,7 +25,7 @@ function Login() {
     const fetchCsrfToken = async () => {
       try {
         const response = await axios.get(
-          `${rawBackendUrl}/api/auth/csrf-token`,
+          `/api/auth/csrf-token`,
           {
             withCredentials: true,
           }
@@ -47,7 +47,7 @@ function Login() {
     setLoading(true);
     try {
       const response = await axios.post(
-        `${rawBackendUrl}/api/auth/login`,
+        `/api/auth/login`,
         {
           username,
           password,

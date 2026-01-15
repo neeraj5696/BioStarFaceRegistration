@@ -7,20 +7,22 @@ const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
-const httpsPort = process.env.HTTPS_PORT || 5000;
+const httpsPort = process.env.PORT || 5000;
 
 // Load mkcert certificates
-const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'localhost+2-key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'localhost+2.pem'))
-};
+// const sslOptions = {
+//   key: fs.readFileSync(path.join(__dirname, 'localhost+2-key.pem')),
+//   cert: fs.readFileSync(path.join(__dirname, 'localhost+2.pem'))
+// };
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || true,
+  origin: process.env.FRONTEND_URL,
+  
   methods: ["GET", "POST", "PUT"],
   credentials: true,
   optionsSuccessStatus: 200,
 }));
+console.log(process.env.FRONTEND_URL),
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.json({ limit: "10mb" }));
@@ -38,6 +40,7 @@ app.use((req, res, next) => {
 const authRouter = require("./routes/auth");
 app.use("/api/auth", authRouter);
 app.post("/login", authRouter);
+app.get("/csrf-token", authRouter);
 
 
 const {searchEmployees, sendVerificationEmail, sendBulkVerificationEmails } = require("./controller/userlist");
@@ -73,16 +76,25 @@ app.post("/api/log", (req, res) => {
   }
 });
 
-// app.use("/uploads", express.static("uploads"));
-// app.use(express.static(path.join(__dirname, "dist_frontend")));
-// app.get(/^(?!\/api).*$/, (req, res) => {
-//   res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
-// });
+app.use("/uploads", express.static("uploads"));
+app.use(express.static(path.join(__dirname, "dist_frontend")));
+app.get(/^(?!\/api).*$/, (req, res) => {
+  res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
+});
 
-https.createServer(sslOptions, app).listen(httpsPort, "0.0.0.0", () => {
-  console.log(`🔒 HTTPS Server: https://localhost:${httpsPort}`);
-  console.log(`📱 Mobile: https://192.168.0.166:${httpsPort}`);
+app.listen(httpsPort, "0.0.0.0", () => {
+  console.log(`🔒 HTTPS Server: http://localhost:${httpsPort}`);
+ // console.log(`📱 Mobile: https://192.168.0.166:${httpsPort}`);
   console.log(`✅ Trusted certificates - no browser warnings!`);
 });
+
+
+// for ssl to work 
+
+// https.createServer(sslOptions, app).listen(httpsPort, "0.0.0.0", () => {
+//   console.log(`🔒 HTTPS Server: https://localhost:${httpsPort}`);
+//  // console.log(`📱 Mobile: https://192.168.0.166:${httpsPort}`);
+//   console.log(`✅ Trusted certificates - no browser warnings!`);
+// });
 
 module.exports = app;

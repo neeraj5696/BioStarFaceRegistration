@@ -17,12 +17,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import logger from "../utils/logger";
 import BulkEmailSender from "./BulkEmailSender";
 
-const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-const BioStarUrl = rawBackendUrl
-  ? /^(https?:\/\/)/i.test(rawBackendUrl)
-    ? rawBackendUrl
-    : `http://${rawBackendUrl}`
-  : "";
+// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+// const BioStarUrl = rawBackendUrl
+//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
+//     ? rawBackendUrl
+//     : `http://${rawBackendUrl}`
+//   : "";
 
 interface UserGroup {
   id: string;
@@ -126,7 +126,7 @@ const SearchEmp = () => {
     let response = null;
     setLoading(true);
     try {
-      response = await axios.post(`${rawBackendUrl}/api/employees`, {
+      response = await axios.post(`/api/employees`, {
         username,
         password,
       });
@@ -255,7 +255,7 @@ const SearchEmp = () => {
     setSendingEmails(true);
     try {
       const promises = validEmployees.map((employee) =>
-        axios.post(`${rawBackendUrl}/api/send-email`, {
+        axios.post(`/api/send-email`, {
           employeeId: employee.id,
           email: employee.email,
           name: employee.name,
@@ -410,8 +410,8 @@ const SearchEmp = () => {
                   )}
 
                   {!loading && filteredEmployees.length > 0 && (
-                    <div className=" z-30 px-3 sm:px-4 py-2 bg-blue-50 border-b border-blue-300 space-y-2">
-                      <div className="flex flex-col sm:flex-row items-center  sm:gap-4 my-3 bg-white p-2 rounded-xl shadow hover:border-blue-400 transition-all">
+                    <div className="sticky top-0 z-30 px-3 sm:px-4 py-3 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 border-b border-blue-400 shadow-lg">
+                      <div className="flex flex-col sm:flex-row items-center sm:gap-3 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-md border border-gray-200">
                         {
                           <button
                             onClick={() => {
@@ -424,7 +424,7 @@ const SearchEmp = () => {
                                 setSelectedEmployees(filteredEmployees);
                               }
                             }}
-                            className="min-w-[120px] px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                            className="min-w-[120px] px-4 py-2.5 font-semibold rounded-lg border-2 border-blue-500 focus:ring-2 focus:ring-blue-400 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm shadow-md transition-all duration-200 outline-none cursor-pointer hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-95 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed"
                           >
                             {selectedEmployees.length ===
                               filteredEmployees.length
@@ -438,15 +438,15 @@ const SearchEmp = () => {
                           onChange={(e) =>
                             setSelectedDepartment(e.target.value)
                           }
-                          className="min-w-[157px] max-w-[157px] px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                          className="min-w-[157px] max-w-[157px] px-3 font-medium py-2.5 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-blue-400 bg-white text-gray-800 text-sm shadow-sm transition-all duration-200 outline-none cursor-pointer hover:border-blue-500 hover:bg-blue-50 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                          <option value="">
+                          <option value="" className="text-gray-500">
                             {selectedDepartment
                               ? "Clear Department"
                               : "Select Department"}
                           </option>
                           {department.map((item, index) => (
-                            <option key={index} value={item}>
+                            <option key={index} value={item} className="text-gray-900 font-medium">
                               {toTitleCase(item)}
                             </option>
                           ))}
@@ -454,16 +454,16 @@ const SearchEmp = () => {
                         <select
                           value={selectedUserGroup}
                           onChange={(e) => setSelectedUserGroup(e.target.value)}
-                          className="min-w-[155px] px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                          className="min-w-[155px] px-3 py-2.5 rounded-lg font-medium border-2 border-gray-300 focus:ring-2 focus:ring-blue-400 bg-white text-gray-800 text-sm shadow-sm transition-all duration-200 outline-none cursor-pointer hover:border-blue-500 hover:bg-blue-50 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                          <option value="">
+                          <option value="" className="text-gray-500">
                             {selectedUserGroup
                               ? "Clear User Group"
                               : "Select User Group"}
                           </option>
-                          <option value="all">All Users</option>
+                          <option value="all" className="text-gray-900 font-medium">All Users</option>
                           {usergrouplist.map((item, index) => (
-                            <option key={index} value={item}>
+                            <option key={index} value={item} className="text-gray-900 font-medium">
                               {toTitleCase(item)}
                             </option>
                           ))}
@@ -474,15 +474,15 @@ const SearchEmp = () => {
                             setBulkFilterType("id10plus");
                             setShowBulkSender(true);
                           }}
-                          className=" flex min-w-[120px] p-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 text-base shadow-lg transition-all duration-150 appearance-none outline-none cursor-pointer hover:border-blue-400 focus:border-blue-600 disabled:bg-gray-100 disabled:text-gray-400"
+                          className="flex items-center justify-center min-w-[120px] px-3 py-2.5 rounded-lg font-medium border-2 border-purple-400 focus:ring-2 focus:ring-purple-400 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm shadow-md transition-all duration-200 outline-none cursor-pointer hover:from-purple-600 hover:to-purple-700 hover:shadow-lg active:scale-95 disabled:from-gray-300 disabled:to-gray-400"
                         >
                           Student ({employeesWithLongId.length})
                         </button>
                         <button
                           onClick={() => setShowValidOnly(!showValidOnly)}
-                          className={`flex items-center gap-2 px-5 py-2 font-semibold rounded-lg shadow transition-all text-base ${showValidOnly
-                            ? "bg-green-600 text-white"
-                            : "bg-white text-gray-700 border border-gray-300"
+                          className={`flex items-center justify-center gap-2 px-4 py-2.5 font-medium rounded-lg shadow-md transition-all duration-200 text-sm active:scale-95 ${showValidOnly
+                            ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-400 hover:from-green-600 hover:to-green-700"
+                            : "bg-white text-gray-800 border-2 border-gray-300 hover:border-green-500 hover:bg-green-50"
                             }`}
                         >
                           <Mail className="h-5 w-5" />
