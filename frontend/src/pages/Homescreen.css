@@ -1,0 +1,248 @@
+Main Container
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated background elements */
+.main-container::before {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  top: -100px;
+  left: -100px;
+  animation: float 6s ease-in-out infinite;
+}
+
+.main-container::after {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  bottom: -150px;
+  right: -150px;
+  animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(20px);
+  }
+}
+
+/* Main Container Content */
+.container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 50px 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 600px;
+  width: 90%;
+  z-index: 10;
+  animation: slideDown 0.6s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Headings */
+.container h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.5rem;
+  color: #667eea;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.container h2 {
+  margin: 0 0 40px 0;
+  font-size: 1.1rem;
+  color: #666;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+/* Button Wrapper */
+.button-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  align-items: center;
+  justify-items: center;
+}
+
+/* Individual Button Container */
+.button-wrapper > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 30px 20px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.button-wrapper > div:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.button-wrapper > div:active {
+  transform: translateY(-4px);
+}
+
+/* Buttons */
+.button-wrapper button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.button-wrapper button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: left 0.3s ease;
+}
+
+.button-wrapper button:hover::before {
+  left: 100%;
+}
+
+.button-wrapper button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.button-wrapper button:active {
+  transform: scale(0.98);
+}
+
+/* Icons */
+.button-wrapper svg {
+  width: 40px;
+  height: 40px;
+  color: #667eea;
+  transition: all 0.3s ease;
+  stroke-width: 2;
+}
+
+.button-wrapper > div:hover svg {
+  color: white;
+  transform: scale(1.2);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 35px 25px;
+    max-width: 90vw;
+  }
+
+  .container h1 {
+    font-size: 2rem;
+  }
+
+  .container h2 {
+    font-size: 1rem;
+    margin-bottom: 30px;
+  }
+
+  .button-wrapper {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .button-wrapper > div {
+    width: 100%;
+    padding: 25px 15px;
+  }
+
+  .button-wrapper svg {
+    width: 35px;
+    height: 35px;
+  }
+
+  .button-wrapper button {
+    padding: 10px 24px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-container {
+    padding: 20px;
+  }
+
+  .container {
+    padding: 25px 20px;
+    border-radius: 15px;
+  }
+
+  .container h1 {
+    font-size: 1.6rem;
+  }
+
+  .container h2 {
+    font-size: 0.95rem;
+  }
+
+  .button-wrapper > div {
+    padding: 20px 12px;
+  }
+
+  .button-wrapper button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
+  .button-wrapper svg {
+    width: 30px;
+    height: 30px;
+  }
+}

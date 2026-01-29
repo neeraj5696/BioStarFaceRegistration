@@ -54,10 +54,12 @@ class AppLogger {
     let logMessage = `[${timestamp}] [${level}] ${message}`;
     
     if (data) {
-      logMessage += ` | Data: ${JSON.stringify(data)}`;
+      // Format data with newlines for better readability
+      const formattedData = JSON.stringify(data, null, 2);
+      logMessage += `\n   Data: ${formattedData}`;
     }
     
-    logMessage += '\n';
+    logMessage += '\n\n'; // Double newline for separation between log entries
 
     fs.appendFileSync(logFilePath, logMessage, 'utf8');
     

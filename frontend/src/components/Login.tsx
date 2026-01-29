@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import "./Login.css";
-import { Eye, EyeOff } from "lucide-react";
+import {Eye, EyeOff } from "lucide-react";
 
 // const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
 // const Backend_URL = rawBackendUrl
@@ -31,6 +31,7 @@ function Login() {
           }
         );
         setCsrfToken(response.data.csrfToken);
+        console.log('kya hua',response.status)
       } catch (error) {
         console.error("Failed to fetch CSRF token:", error);
       }
@@ -43,7 +44,7 @@ function Login() {
       toast.error("Please enter username and password");
       return;
     }
-
+   
     setLoading(true);
     try {
       const response = await axios.post(

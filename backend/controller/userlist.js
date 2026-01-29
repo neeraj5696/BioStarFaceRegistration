@@ -3,6 +3,7 @@ const loginToBioStar = require("../services/Loginservices");
 const https = require("https");
 const axios = require("axios");
 const { addMailSent } = require('./history');
+const logger = require('../utils/logger');
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
@@ -164,6 +165,18 @@ const sendVerificationEmail = async (req, res) => {
                       
                       <p style="color: #34495e; font-size: 15px; line-height: 1.7; margin: 0 0 25px 0;">The enrollment must be completed by clicking on this link and following the on-screen instructions carefully.</p>
                       
+                      <!-- SSL Warning Notice -->
+                      <div style="background-color: #fff3cd; border: 2px solid #ff9800; border-radius: 8px; padding: 20px; margin: 25px 0;">
+                        <p style="color: #d32f2f; font-size: 15px; line-height: 1.7; margin: 0 0 10px 0; font-weight: 600;">⚠️ IMPORTANT: Browser Security Warning</p>
+                        <p style="color: #856404; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">When you click the link below, your browser may show a warning: <strong>"Your connection is not private"</strong></p>
+                        <p style="color: #856404; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0; font-weight: 500;">Please follow these steps to proceed:</p>
+                        <ol style="color: #856404; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                          <li>Click on <strong>"Advanced"</strong> button</li>
+                          <li>Then click on <strong>"Proceed to biostar.krmangalam.edu.in (unsafe)"</strong></li>
+                        </ol>
+                        <p style="color: #27ae60; font-size: 14px; line-height: 1.6; margin: 10px 0 0 0; font-weight: 600;">✓ You are Safe, It is just warning - This is our internal university system.</p>
+                      </div>
+                      
                       <p style="color: #34495e; font-size: 15px; line-height: 1.7; margin: 0 0 15px 0;">Click on this link to complete the enrollment process</p>
                       
                       <!-- Campus Link Section -->
@@ -216,16 +229,23 @@ const sendVerificationEmail = async (req, res) => {
     };
 
     // Send email
-    await transporter.sendMail(mailOptions);
+  const mailresult=  await transporter.sendMail(mailOptions);
+  console.log("Mail sent result:", mailresult);
+
+
     transporter.close();
-    
+
     // Add to history
     addMailSent(employeeId, name, email);
+
+    // Log individual email sent
+    logger.logEmailSent(1, [{ id: employeeId, name, email }]);
 
     res.json({
       message: "Verification email sent successfully",
     });
   } catch (error) {
+    console.error("Error sending verification email:", error);
     res.status(500).json({
       message: "Error sending verification email",
       error: error.message,
@@ -324,6 +344,14 @@ const sendBulkVerificationEmails = async (req, res) => {
                           <p style="color: #2c3e50; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; font-weight: 500;">Dear Mr./Ms.${name} (Student/Staff/Faculty)</p>
                           <p style="color: #34495e; font-size: 15px; line-height: 1.7; margin: 0 0 20px 0;">K R Mangalam University is in the process of implementing a secure facial recognition–based access control system at campus entry gate.</p>
                           <p style="color: #34495e; font-size: 15px; line-height: 1.7; margin: 0 0 20px 0;">You are requested to complete your face enrollment to ensure seamless access to the campus.</p>
+                          
+                          <div style="background-color: #fff3cd; border: 2px solid #ff9800; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                            <p style="color: #d32f2f; font-size: 14px; margin: 0 0 8px 0; font-weight: 600;">⚠️ Browser Security Warning</p>
+                            <p style="color: #856404; font-size: 13px; margin: 0 0 8px 0;">If you see "Your connection is not private" warning:</p>
+                            <p style="color: #856404; font-size: 13px; margin: 0 0 8px 0;">Click <strong>Advanced</strong> → <strong>Proceed to biostar.krmangalam.edu.in (unsafe)</strong></p>
+                            <p style="color: #27ae60; font-size: 13px; margin: 0; font-weight: 600;">✓ You are Safe, It is just warning - This is our internal university system.</p>
+                          </div>
+                          
                           <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
                             <p style="color: #2c3e50; font-size: 15px; line-height: 1.7; margin: 0 0 15px 0; font-weight: 500;">Inside the Campus on University Internet</p>
                             <div style="text-align: center; margin: 20px 0;">
@@ -355,9 +383,12 @@ const sendBulkVerificationEmails = async (req, res) => {
           `,
         };
 
-        await transporter.sendMail(mailOptions);
+        // await transporter.sendMail(mailOptions);
+
+
+        //Add to log
         results.success.push({ id, email });
-        
+
         // Add to history
         addMailSent(id, name, email);
 
@@ -369,8 +400,20 @@ const sendBulkVerificationEmails = async (req, res) => {
     // Close transporter
     transporter.close();
 
+    // Log bulk emails sent
+    if (results.success.length > 0) {
+      logger.logEmailSent(
+        results.success.length,
+        results.success.map(emp => ({
+          id: emp.id,
+          name: employees.find(e => e.id === emp.id)?.name || 'Unknown',
+          email: emp.email
+        }))
+      );
+    }
+
     res.json({
-      message: "Bulk email sending completed",
+      message: "Bulk email sending completed and Log and History Written",
       total: employees.length,
       success: results.success.length,
       failed: results.failed.length,

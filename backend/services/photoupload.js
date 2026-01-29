@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const loginToBioStar = require("./Loginservices");
 const { markEnrollmentSuccess } = require('../controller/history');
+const logger = require('../utils/logger');
 
 // Create HTTPS agent to handle self-signed certificates
 const httpsAgent = new https.Agent({
@@ -14,6 +15,14 @@ const uploadPhoto = async (req, res) => {
   try {
     const { employeeId, email, name } = req.body;
 
+    // Validate request data
+    if (!req.body.employeeId || !req.body.image) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: employeeId and image"
+      });
+    }
+
     let sessionId;
     try {
       sessionId = await loginToBioStar({
@@ -23,27 +32,23 @@ const uploadPhoto = async (req, res) => {
         httpsAgent,
       });
     } catch (loginError) {
-      return res.status(401).json({
+
+      console.log(loginError.response.data.Response.message)
+      return res.status(501).json({
         success: false,
-        message: "Failed to authenticate with BioStar system",
-        error: loginError.message
+        message:loginError.response.data.Response.message|| "Failed to authenticate BioStar systemm",
+        error: loginError.response?.data
       });
     }
 
     if (!sessionId) {
-      return res.status(401).json({
+      return res.status(502).json({
         success: false,
-        message: "No valid session ID obtained"
+        message: "Failed to authenticate BioStar systemm",
       });
     }
 
-    // Validate request data
-    if (!req.body.employeeId || !req.body.image) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields: employeeId and image"
-      });
-    }
+
 
     // Update user face data
     try {
@@ -55,7 +60,7 @@ const uploadPhoto = async (req, res) => {
         cleanImage = req.body.image.startsWith("data:")
           ? req.body.image.split(",")[1]
           : req.body.image;
-        
+
         if (!cleanImage || cleanImage.length === 0) {
           throw new Error("Invalid image data");
         }
@@ -66,7 +71,7 @@ const uploadPhoto = async (req, res) => {
           error: imageError.message
         });
       }
-
+      console.log(cleanImage)
       const updateResponse = await axios.put(
         `${process.env.BIOSTAR_URL}/api/users/${userId}`,
         {
@@ -74,15 +79,15 @@ const uploadPhoto = async (req, res) => {
             credentials: {
               visualFaces: [
                 {
-                  template_ex_normalized_image: cleanImage, 
+                  template_ex_normalized_image: cleanImage,
                   templates: [
                     {
                       credential_bin_type: "5",
                       "index": 0,
                       template_ex:
-                       "bG5kL2hIeDloSDlpZ0daN2VuV0VsM3VCajN0dGc2Ti9lWGRvZzFxUmY0ZHNnWGgrcUg2SmU1Q1Fhb0tSaVY1MmUyNTNkcEtPZVlWems1R1Vob0tSZjV1bWdaR05nbkI1aG5lRmNYZDBkNUJza29KK2g0cVNnV2FXWjVKMGlIT0RoMytQaG55QmZYeVFpWGFFZklObmwzSjdtNE9BZzNaNGVvMkJtM2h5ZllXWWhYcVNhWUp0a25kL2JYV2NoM1Y4YkpSL2RIeGliNFYrZ21TSWpHMkNnb1puZFlaL21uZDNjM1YvZTM2TWZZNXFuSkpyb0hxTWc0ZUxqWHlSaElaeWk0RmplSXlYblpHTmNZR0dmV3QvYllOaWhZNS9oSEYxZ0kxN2hJT1Bhbjk4ZG90M2c0bUhmbjZoZ1hhSGVZQm9ibktHZ1hSeWQzT0llblNKY0hOemtaRjVjRzl6ZTNSOWZYOTlrSUY5ZTI5bmJJNldmSUtTYm95RmY0RjlobnlQZ0cxd2hveVFnbnFHWjRkN21uNkRqSTZLam5lVGRIbDNnbjk5Zm8xK2ZKR1dnblNIaDVHUGRIdUNnSVNTZkcrRmhHNXhpWWRpaUkrS2taSitoWVNaZW9tR2daZDdYM2VNZlhlQ2ZuNStqWGFTaW5sNlgzWjhpWXVHY0haM2ZvbWhmcEJ6ZzMyTGVwVnphWEoxZG9aOWRJMk5mb3QzY1Z4OWcyNkFrbk9F"
+                        "bG5kL2hIeDloSDlpZ0daN2VuV0VsM3VCajN0dGc2Ti9lWGRvZzFxUmY0ZHNnWGgrcUg2SmU1Q1Fhb0tSaVY1MmUyNTNkcEtPZVlWems1R1Vob0tSZjV1bWdaR05nbkI1aG5lRmNYZDBkNUJza29KK2g0cVNnV2FXWjVKMGlIT0RoMytQaG55QmZYeVFpWGFFZklObmwzSjdtNE9BZzNaNGVvMkJtM2h5ZllXWWhYcVNhWUp0a25kL2JYV2NoM1Y4YkpSL2RIeGliNFYrZ21TSWpHMkNnb1puZFlaL21uZDNjM1YvZTM2TWZZNXFuSkpyb0hxTWc0ZUxqWHlSaElaeWk0RmplSXlYblpHTmNZR0dmV3QvYllOaWhZNS9oSEYxZ0kxN2hJT1Bhbjk4ZG90M2c0bUhmbjZoZ1hhSGVZQm9ibktHZ1hSeWQzT0llblNKY0hOemtaRjVjRzl6ZTNSOWZYOTlrSUY5ZTI5bmJJNldmSUtTYm95RmY0RjlobnlQZ0cxd2hveVFnbnFHWjRkN21uNkRqSTZLam5lVGRIbDNnbjk5Zm8xK2ZKR1dnblNIaDVHUGRIdUNnSVNTZkcrRmhHNXhpWWRpaUkrS2taSitoWVNaZW9tR2daZDdYM2VNZlhlQ2ZuNStqWGFTaW5sNlgzWjhpWXVHY0haM2ZvbWhmcEJ6ZzMyTGVwVnphWEoxZG9aOWRJMk5mb3QzY1Z4OWcyNkFrbk9F"
                     },
-                   
+
                   ],
                 },
               ],
@@ -91,16 +96,22 @@ const uploadPhoto = async (req, res) => {
         },
         {
           headers: {
-            "bs-session-id": sessionId,
+           
             "Content-Type": "application/json",
+             "bs-session-id": sessionId,
           },
           httpsAgent,
         }
       );
-      
-      // Mark enrollment as success
+
+      // Mark enrollment as success in HISTORY JSON FILE
+
       markEnrollmentSuccess(req.body.employeeId);
 
+      // Log photo upload success to LOG TXT FILE
+      logger.logPhotoUpdated(req.body.employeeId, name || 'Unknown', email || null);
+
+      console.log("Photo updated successfully for user:", updateResponse);
       res.status(200).json({
         data: {
           success: true,
@@ -113,18 +124,21 @@ const uploadPhoto = async (req, res) => {
         },
       });
     } catch (updateError) {
-      // Still return success since login worked
-      res.status(400).json({
-        data: {
-          success: false,
-          message: "Login successful but user update failed",
-          error: updateError.message,
-          sessionId: sessionId,
-          details: updateError.response?.data || null,
-        },
+
+      console.error("Error updating user face data:", updateError.response?.data?.Response?.message)
+      res.status(500).json({
+
+        success: false,
+        message: updateError.response?.data?.Response?.message || "Photo upload failed while updating face data",
+        error: updateError.message,
+        sessionId: sessionId,
+        details: updateError.response?.data || null,
+        status: updateError.status || null,
+
       });
     }
   } catch (error) {
+    console.error("Unexpected error in uploadPhoto:", error);
     res.status(500).json({
       success: false,
       message: "Failed to upload photo",
@@ -150,7 +164,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: {
     fileSize: 9 * 1024 * 1024, // 9MB limit

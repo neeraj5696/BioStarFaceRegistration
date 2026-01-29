@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
-//import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
+  Search,
   Mail,
   CheckCircle,
   Clock,
-  // ArrowLeft,
+  Shield,
+  LogOut,
   FileSpreadsheet,
 } from "lucide-react";
 import axios from "axios";
@@ -27,44 +29,101 @@ interface HistoryData {
   history: HistoryItem[];
 }
 
-// const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-// const BioStarUrl = rawBackendUrl
-//   ? /^(https?:\/\/)/i.test(rawBackendUrl)
-//     ? rawBackendUrl
-//     : `http://${rawBackendUrl}`
-//   : "";
+// const getBackendUrl = (): string => {
+//   const rawUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
+//   if (!rawUrl) return "";
+//   return /^(https?:\/\/)/i.test(rawUrl) ? rawUrl : `http://${rawUrl}`;
+// };
+
+// const BACKEND_URL = getBackendUrl();
+const ITEMS_PER_PAGE = 100;
+const SEARCH_DEBOUNCE_MS = 300;
+const LINK_EXPIRY_DAYS = 7;
+const EXCEL_EXPORT_LIMIT = 20000;
 
 const History = () => {
-  //  const navigate = useNavigate();
+  const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [data, setData] = useState<HistoryData | null>(null);
+  const [filteredHistory, setFilteredHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
-  const limit = 100;
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pageInput, setPageInput] = useState("1");
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(0);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Focus search input after data loads
+  useEffect(() => {
+    if (!loading && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [loading]);
 
   useEffect(() => {
     fetchHistory();
-  }, [page]);
+  }, [page, debouncedSearch]);
 
-  const fetchHistory = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        `/api/history?limit=${limit}&offset=${page * limit}`
-      );
-      setData(response.data);
-      setTotal(response.data.total || 0);
-    } catch (error) {
-      console.error("Error fetching history:", error);
-    } finally {
-      setLoading(false);
+  // Update filtered history when data changes
+  useEffect(() => {
+    if (!data?.history) {
+      setFilteredHistory([]);
+      return;
     }
-  };
-  const HandleExcelExport = async () => {
+    setFilteredHistory(data.history);
+  }, [data]);
+
+  const fetchHistory = useCallback(async () => {
     try {
+      setError(null);
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      
+      const params = new URLSearchParams();
+      params.append("limit", ITEMS_PER_PAGE.toString());
+      params.append("offset", (page * ITEMS_PER_PAGE).toString());
+      
+      if (debouncedSearch) {
+        params.append("search", debouncedSearch);
+      }
+      
+      const response = await axios.get(`/api/history?${params}`);
+      setData(response.data);
+      setFilteredHistory(response.data.history || []);
+      setTotal(response.data.total || 0);
+      
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to fetch history";
+      setError(errorMsg);
+      console.error("Error fetching history:", err);
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
+    }
+  }, [page, debouncedSearch, isInitialLoad]);
+  const handleExcelExport = useCallback(async () => {
+    try {
+      setError(null);
       setLoading(true);
-      const response = await axios.get(`/api/history?limit=20000&offset=0`);
-      const allData = response.data.history;
+      const response = await axios.get(`/api/history?limit=${EXCEL_EXPORT_LIMIT}&offset=0`);
+      const allData = response.data.history || [];
 
       const excelData = allData.map((item: HistoryItem, index: number) => ({
         "S.No": index + 1,
@@ -73,28 +132,21 @@ const History = () => {
         "Mail Sent": formatDateTime(item.mailSentAt),
         Status: item.status === "success" ? "Success" : "Pending",
       }));
-      //Converts a JavaScript array of objects into an Excel worksheet. object keys are used as column headers. object are used as rows.
+
       const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-      //Creates a new empty Excel workbook.
       const workbook = XLSX.utils.book_new();
-
-      //Appends the worksheet to the workbook with the specified sheet name.
       XLSX.utils.book_append_sheet(workbook, worksheet, "Enrollment History");
 
-      const fileName = `Enrollment_History_${
-        new Date().toISOString().split("T")[0]
-      }.xlsx`;
-
-      //Generates and downloads the Excel file.
+      const fileName = `Enrollment_History_${new Date().toISOString().split("T")[0]}.xlsx`;
       XLSX.writeFile(workbook, fileName);
-    } catch (error) {
-      console.error("Error exporting to Excel:", error);
-      alert("Failed to export data to Excel");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to export data";
+      setError(errorMsg);
+      console.error("Error exporting to Excel:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -107,6 +159,20 @@ const History = () => {
     });
   };
 
+  const isLinkExpired = useCallback((mailSentAt: string): boolean => {
+    const sentDate = new Date(mailSentAt);
+    const currentDate = new Date();
+    const diffInDays = (currentDate.getTime() - sentDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffInDays > LINK_EXPIRY_DAYS;
+  }, []);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    const maxPage = Math.ceil(total / ITEMS_PER_PAGE);
+    const validPage = Math.max(0, Math.min(newPage, maxPage - 1));
+    setPage(validPage);
+    setPageInput((validPage + 1).toString());
+  }, [total]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -117,34 +183,73 @@ const History = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center ">
-            <div className="flex items-center gap-3">
-              {/* <button
-                onClick={() => navigate("/dashboard")}
-                className="rounded-lg bg-white/10 p-2 text-white shadow-sm transition hover:bg-white/20 hover:shadow-md active:scale-95"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button> */}
 
-              <h1 className="text-xl font-semibold tracking-tight text-white">
-                Enrollment History
+
+
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white">
+                BioStar HR Dashboard
               </h1>
+              <p className="text-sm text-blue-100">
+                Face Registration Management
+              </p>
             </div>
 
-            {/* Excel Export Button  */}
-            <button
-              onClick={HandleExcelExport}
-              className="ml-auto flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 shadow-sm transition hover:bg-green-100 hover:shadow-md active:scale-[0.98]"
-            >
-              <FileSpreadsheet className="h-5 w-5" />
-              Export Excel
-            </button>
+            {/* Search Header */}
+            <div className="flex-1 max-w-2xl mx-4">
+              <div className="relative">
+                <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search employees..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 sm:pl-11 md:pl-12 pr-3 sm:pr-4 py-2 sm:py-2.5 md:py-3 lg:py-3.5 bg-white border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all text-xs sm:text-sm md:text-base shadow-md"
+                />
+              </div>
+            </div>
+
+            {/* Action Icons */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  navigate("/");
+                }}
+                className="p-2 hover:bg-white/20 rounded-lg transition-all"
+                title="Logout"
+              >
+                <LogOut className="h-8 w-8 text-white" />
+              </button>
+
+              <button
+                onClick={handleExcelExport}
+                className="ml-auto flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 shadow-sm transition hover:bg-green-100 hover:shadow-md active:scale-[0.98]"
+              >
+                <FileSpreadsheet className="h-5 w-5" />
+                Export Excel
+              </button>
+            </div>
           </div>
         </div>
       </div>
+      {/* Error Alert */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+            Error: {error}
+          </div>
+        </div>
+      )}
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
@@ -207,21 +312,24 @@ const History = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Link Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data?.history.length === 0 ? (
+                {filteredHistory.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-6 py-8 text-center text-gray-500"
                     >
-                      No history data available
+                      {searchTerm ? "No matching records found" : "No history data available"}
                     </td>
                   </tr>
                 ) : (
-                  data?.history.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
+                  filteredHistory.map((item) => (
+                    <tr key={item.userId} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {item.name}
                       </td>
@@ -233,13 +341,23 @@ const History = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            item.status === "success"
+                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === "success"
                               ? "bg-green-100 text-green-800"
                               : "bg-orange-100 text-orange-800"
-                          }`}
+                            }`}
                         >
                           {item.status === "success" ? "Success" : "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            isLinkExpired(item.mailSentAt)
+                              ? "bg-red-100 text-red-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {isLinkExpired(item.mailSentAt) ? "Link Expired" : "Active"}
                         </span>
                       </td>
                     </tr>
@@ -248,22 +366,53 @@ const History = () => {
               </tbody>
             </table>
           </div>
-          {total > limit && (
-            <div className="px-6 py-4 border-t flex items-center justify-between">
+          {total > ITEMS_PER_PAGE && (
+            <div className="px-6 py-4 border-t flex items-center justify-between gap-4">
               <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                onClick={() => handlePageChange(page - 1)}
                 disabled={page === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-600">
-                Page {page + 1} of {Math.ceil(total / limit)}
-              </span>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  Page {page + 1} of {Math.ceil(total / ITEMS_PER_PAGE)}
+                </span>
+                <span className="text-gray-400">|</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max={Math.ceil(total / ITEMS_PER_PAGE)}
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        const pageNum = parseInt(pageInput) || 1;
+                        handlePageChange(pageNum - 1);
+                      }
+                    }}
+                    className="w-12 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                    placeholder="Go to"
+                  />
+                  <button
+                    onClick={() => {
+                      const pageNum = parseInt(pageInput) || 1;
+                      handlePageChange(pageNum - 1);
+                    }}
+                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Go
+                  </button>
+                </div>
+              </div>
+
               <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={(page + 1) * limit >= total}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={(page + 1) * ITEMS_PER_PAGE >= total}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
               >
                 Next
               </button>

@@ -96,16 +96,31 @@ const markEnrollmentSuccess = (userId) => {
 
 const getHistory = (req, res) => {
   try {
-    const { limit = 100, offset = 0 } = req.query;
+    const { limit = 100, offset = 0, search } = req.query;
     const data = readHistory();
     
-    const paginatedHistory = data.history
+    let filteredHistory = data.history;
+    
+    // Apply search filter if search term is provided
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase();
+      filteredHistory = data.history.filter(item =>
+        item.name?.toLowerCase().includes(searchLower) ||
+        item.email?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    const sortedHistory = filteredHistory.sort((a, b) => 
+      new Date(b.mailSentAt) - new Date(a.mailSentAt)
+    );
+    
+    const paginatedHistory = sortedHistory
       .slice(parseInt(offset), parseInt(offset) + parseInt(limit));
     
     res.json({
       stats: data.stats,
       history: paginatedHistory,
-      total: data.history.length,
+      total: filteredHistory.length,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });

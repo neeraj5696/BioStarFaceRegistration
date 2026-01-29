@@ -16,7 +16,7 @@ interface BulkEmailSenderProps {
 }
 
 // const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-// const BioStarUrl = rawBackendUrl
+// const Backend_URL = rawBackendUrl
 //   ? /^(https?:\/\/)/i.test(rawBackendUrl)
 //     ? rawBackendUrl
 //     : `http://${rawBackendUrl}`
@@ -44,6 +44,10 @@ const BulkEmailSender: React.FC<BulkEmailSenderProps> = ({ employees, onClose, f
   const invalidEmailCount = employees.length - filteredEmployees.length;
 
   const handleBulkSend = async () => {
+
+    toast.success(`Bulk Mail Sender Triggered, Please wait..., do not refresh the page`);
+
+
     if (filteredEmployees.length === 0) {
       toast.error("No employees to send emails to");
       return;
@@ -66,7 +70,7 @@ const BulkEmailSender: React.FC<BulkEmailSenderProps> = ({ employees, onClose, f
       const batch = filteredEmployees.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
 
       try {
-        const response = await axios.post(`/api/send-bulk-email`, {
+        const response = await axios.post(`$/api/send-bulk-email`, {
           employees: batch.map(emp => ({
             id: emp.id,
             name: emp.name,

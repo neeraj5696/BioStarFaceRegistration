@@ -73,11 +73,11 @@ app.post("/api/log", (req, res) => {
   }
 });
 
-app.use("/uploads", express.static("uploads"));
-app.use(express.static(path.join(__dirname, "dist_frontend")));
-app.get(/^(?!\/api).*$/, (req, res) => {
-  res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
-});
+// app.use("/uploads", express.static("uploads"));
+// app.use(express.static(path.join(__dirname, "dist_frontend")));
+// app.get(/^(?!\/api).*$/, (req, res) => {
+//   res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
+// });
 
 https.createServer(app).listen(httpsPort, "0.0.0.0", () => {
   console.log(`🔒 HTTPS Server: https://localhost:${httpsPort}`);

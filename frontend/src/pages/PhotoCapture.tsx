@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
-import logger from "../utils/logger";
+
 
 // const BioStarUrl = import.meta.env.VITE_BACKEND_URL
 
@@ -18,6 +18,7 @@ const PhotoCapture = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [webcamKey, setWebcamKey] = useState(0);
   const [searchParams] = useSearchParams();
+  const [showImage, setShowImage] = useState(false);
 
   const webcamRef = React.useRef<Webcam>(null);
 
@@ -102,28 +103,26 @@ const PhotoCapture = () => {
       };
 
       // const response =
-      await axios.post(`/api/uploadphoto`, photoData, {
+    const uploadresult=  await axios.post(`/api/uploadphoto`, photoData, {
         headers: { "Content-Type": "application/json" },
       });
 
-      // Log photo submitted from frontend
-      logger.logPhotoSubmitted(employeeId, name, email);
-      // console.log(response.data);
+     console.log("Photo upload result:", uploadresult);
       setSubmitted(true);
       setWebcamEnabled(false);
     } catch (error: any) {
-      //  console.error("Error uploading photo:", error);
+        console.error("Error uploading photo:", error);
       // console.error('Photo upload failed:', { employeeId, email, error: error instanceof Error ? error.message : String(error) });
       //  console.error("Error response data:", error.response?.data);
       //  console.error("Error response status:", error.response?.status);
-      setCameraError("Failed to upload photo. Please try again.");
-      logger.logPhotoFailed(
-        employeeId,
-        name,
-        email,
-        error.response?.data,
-        error.response?.status
-      );
+      setCameraError(error.response?.data?.message || "Photo upload failed. Please try again.");
+      // logger.logPhotoFailed(
+      //   employeeId,
+      //   name,
+      //   email,
+      //   error.response?.data,
+      //   error.response?.status
+      // );
     } finally {
       setLoading(false);
     }
@@ -169,16 +168,16 @@ const PhotoCapture = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-md p-4">
+      {/* <div className="bg-white shadow-md px-4 py-6 sm:px-6 sm:py-8">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 px-2 leading-tight">
             Face Attendance Verification
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-xs sm:text-sm text-gray-600 px-4">
             Please align your face and submit your photo
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
@@ -457,19 +456,28 @@ const PhotoCapture = () => {
             {/* Instructions Section */}
             <div className="p-6 overflow-hidden p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <button
+                  onClick={() => setShowImage(true)}
+                  type="button"
+                  className=""
+                  aria-label="Show instruction"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                  <svg
+                    className="w-6 h-6 mr-2 text-grey-100 hover:text-blue-900 hover:transform transition duration-200 ease-in-out
+               hover:scale-140"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <title>Click to see the instruction</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </button>
                 Photo Guidelines
               </h3>
 
@@ -482,9 +490,67 @@ const PhotoCapture = () => {
                     Allow camera access when prompted in your browser
                   </p>
                 </div>
+
                 <div className="flex items-start">
                   <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
                     2
+                  </span>
+
+                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                    Click
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowImage(true);
+                      }}
+                      type="button"
+                      className="inline-flex items-center"
+                      aria-label="Instruction"
+                    >
+                      <svg
+                        className="w-5 h-5 text-gray-400 hover:text-blue-900 transition duration-200 hover:scale-110"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                        />
+                      </svg>
+                    </button>
+                    button to see the instruction
+                  </p>
+                </div>
+
+                {/* FULL SCREEN IMAGE OVERLAY */}
+                {showImage && (
+                  <div
+                    className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4"
+                    onClick={() => setShowImage(false)}
+                  >
+                    <img
+                      src="/FACIAL-INSTRUCTION.jpg"
+                      alt="Instruction"
+                      className="max-w-full max-h-full object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+
+                    {/* CLOSE BUTTON */}
+                    <button
+                      className="absolute top-4 right-4 text-white text-3xl font-bold"
+                      onClick={() => setShowImage(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-start">
+                  <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
+                    3
                   </span>
                   <p className="text-sm text-gray-600">
                     Position your face within the frame
@@ -492,7 +558,7 @@ const PhotoCapture = () => {
                 </div>
                 <div className="flex items-start">
                   <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
-                    3
+                    4
                   </span>
                   <p className="text-sm text-gray-600">
                     Ensure good lighting and no obstructions
@@ -500,7 +566,7 @@ const PhotoCapture = () => {
                 </div>
                 <div className="flex items-start">
                   <span className="flex-shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mr-3">
-                    4
+                    5
                   </span>
                   <p className="text-sm text-gray-600">
                     Click 'Capture' and verify image clarity before submitting

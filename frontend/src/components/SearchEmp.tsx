@@ -14,11 +14,11 @@ import {
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
-import logger from "../utils/logger";
+
 import BulkEmailSender from "./BulkEmailSender";
 
 // const rawBackendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
-// const BioStarUrl = rawBackendUrl
+// const Backend_URL = rawBackendUrl
 //   ? /^(https?:\/\/)/i.test(rawBackendUrl)
 //     ? rawBackendUrl
 //     : `http://${rawBackendUrl}`
@@ -67,10 +67,11 @@ const SearchEmp = () => {
   const [bulkFilterType, setBulkFilterType] = useState<"all" | "id10plus">(
     "all"
   );
+  const [isIndividualSelection, setIsIndividualSelection] = useState(true);
   const location = useLocation();
   const { username, password } = location.state || {
     username: localStorage.getItem("username"),
-    password: localStorage.getItem("password")
+    password: localStorage.getItem("password"),
   };
   const [department, setDepartment] = useState<string[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
@@ -150,9 +151,6 @@ const SearchEmp = () => {
 
         setFilteredEmployees(mappedEmployees);
 
-        // Log user list fetched
-
-        logger.logUserListFetched(mappedEmployees.length);
       } else {
         setAllEmployees([]);
         setFilteredEmployees([]);
@@ -221,6 +219,7 @@ const SearchEmp = () => {
   };
 
   const handleEmployeeToggle = (employee: Employee) => {
+    setIsIndividualSelection(true);
     setSelectedEmployees((prev) => {
       const isSelected = prev.some((emp) => emp.id === employee.id);
       if (isSelected) {
@@ -229,6 +228,11 @@ const SearchEmp = () => {
         return [...prev, employee];
       }
     });
+  };
+
+  const handleBulkSend = () => {
+    setBulkFilterType("all");
+    setShowBulkSender(true);
   };
 
   const handleSendEmail = async () => {
@@ -262,16 +266,6 @@ const SearchEmp = () => {
         })
       );
       await Promise.all(promises);
-
-      // Log emails sent from frontend
-      logger.logEmailsSent(
-        validEmployees.length,
-        validEmployees.map((emp) => ({
-          id: emp.id,
-          name: emp.name,
-          email: emp.email,
-        }))
-      );
 
       toast.success(
         `Successfully sent verification emails to ${validEmployees.length} employee(s)`,
@@ -310,7 +304,7 @@ const SearchEmp = () => {
   return (
     <>
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center space-x-3">
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
               <Shield className="h-5 w-5 text-white" />
@@ -374,7 +368,9 @@ const SearchEmp = () => {
                 {showEmployeePopup && (
                   <div className="absolute top-12 right-0 bg-white text-gray-800 px-4 py-3 rounded-xl shadow-xl min-w-[160px] animate-fadeIn z-50">
                     <p className="text-sm text-gray-500">Total Employees</p>
-                    <p className="text-2xl font-bold text-blue-600">{totaluser}</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {totaluser}
+                    </p>
                   </div>
                 )}
               </div>
@@ -420,8 +416,10 @@ const SearchEmp = () => {
                                 filteredEmployees.length
                               ) {
                                 setSelectedEmployees([]);
+                                setIsIndividualSelection(true);
                               } else {
                                 setSelectedEmployees(filteredEmployees);
+                                setIsIndividualSelection(false);
                               }
                             }}
                             className="min-w-[120px] px-4 py-2.5 font-semibold rounded-lg border-2 border-blue-500 focus:ring-2 focus:ring-blue-400 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm shadow-md transition-all duration-200 outline-none cursor-pointer hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-95 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed"
@@ -435,9 +433,10 @@ const SearchEmp = () => {
 
                         <select
                           value={selectedDepartment}
-                          onChange={(e) =>
-                            setSelectedDepartment(e.target.value)
-                          }
+                          onChange={(e) => {
+                            setSelectedDepartment(e.target.value);
+                            if (e.target.value) setIsIndividualSelection(false);
+                          }}
                           className="min-w-[157px] max-w-[157px] px-3 font-medium py-2.5 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-blue-400 bg-white text-gray-800 text-sm shadow-sm transition-all duration-200 outline-none cursor-pointer hover:border-blue-500 hover:bg-blue-50 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                           <option value="" className="text-gray-500">
@@ -446,14 +445,21 @@ const SearchEmp = () => {
                               : "Select Department"}
                           </option>
                           {department.map((item, index) => (
-                            <option key={index} value={item} className="text-gray-900 font-medium">
+                            <option
+                              key={index}
+                              value={item}
+                              className="text-gray-900 font-medium"
+                            >
                               {toTitleCase(item)}
                             </option>
                           ))}
                         </select>
                         <select
                           value={selectedUserGroup}
-                          onChange={(e) => setSelectedUserGroup(e.target.value)}
+                          onChange={(e) => {
+                            setSelectedUserGroup(e.target.value);
+                            if (e.target.value) setIsIndividualSelection(false);
+                          }}
                           className="min-w-[155px] px-3 py-2.5 rounded-lg font-medium border-2 border-gray-300 focus:ring-2 focus:ring-blue-400 bg-white text-gray-800 text-sm shadow-sm transition-all duration-200 outline-none cursor-pointer hover:border-blue-500 hover:bg-blue-50 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                           <option value="" className="text-gray-500">
@@ -461,9 +467,18 @@ const SearchEmp = () => {
                               ? "Clear User Group"
                               : "Select User Group"}
                           </option>
-                          <option value="all" className="text-gray-900 font-medium">All Users</option>
+                          <option
+                            value="all"
+                            className="text-gray-900 font-medium"
+                          >
+                            All Users
+                          </option>
                           {usergrouplist.map((item, index) => (
-                            <option key={index} value={item} className="text-gray-900 font-medium">
+                            <option
+                              key={index}
+                              value={item}
+                              className="text-gray-900 font-medium"
+                            >
                               {toTitleCase(item)}
                             </option>
                           ))}
@@ -479,10 +494,13 @@ const SearchEmp = () => {
                           Student ({employeesWithLongId.length})
                         </button>
                         <button
-                          onClick={() => setShowValidOnly(!showValidOnly)}
+                          onClick={() => {
+                            setShowValidOnly(!showValidOnly);
+                            if (!showValidOnly) setIsIndividualSelection(false);
+                          }}
                           className={`flex items-center justify-center gap-2 px-4 py-2.5 font-medium rounded-lg shadow-md transition-all duration-200 text-sm active:scale-95 ${showValidOnly
-                            ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-400 hover:from-green-600 hover:to-green-700"
-                            : "bg-white text-gray-800 border-2 border-gray-300 hover:border-green-500 hover:bg-green-50"
+                              ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-400 hover:from-green-600 hover:to-green-700"
+                              : "bg-white text-gray-800 border-2 border-gray-300 hover:border-green-500 hover:bg-green-50"
                             }`}
                         >
                           <Mail className="h-5 w-5" />
@@ -504,8 +522,8 @@ const SearchEmp = () => {
                           key={employee.id}
                           onClick={() => handleEmployeeToggle(employee)}
                           className={`bg-gradient-to-r from-emerald-50 to-blue-50 mx-2 sm:mx-3 md:mx-4 my-1.5 sm:my-2 p-2.5 sm:p-3 md:p-4 lg:px-5 lg:py-2 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.01] focus:ring-2 focus:ring-blue-400 ${isSelected
-                            ? "bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 shadow-md"
-                            : "bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                              ? "bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 shadow-md"
+                              : "bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm"
                             } ${!hasValidEmail ? "opacity-50" : ""}`}
                         >
                           <div className="flex items-center py-4 gap-2 sm:gap-3 md:gap-4">
@@ -519,8 +537,8 @@ const SearchEmp = () => {
                             />
                             <div
                               className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold flex-shrink-0 ${isSelected
-                                ? "bg-blue-600"
-                                : "bg-gradient-to-br from-gray-400 to-gray-500"
+                                  ? "bg-blue-600"
+                                  : "bg-gradient-to-br from-gray-400 to-gray-500"
                                 }`}
                             >
                               {getInitials(employee.name)}
@@ -536,8 +554,8 @@ const SearchEmp = () => {
                                 </span>
                                 <span
                                   className={`text-[10px] mb-1 sm:text-xs md:text-sm truncate flex items-center gap-1 ${hasValidEmail
-                                    ? "text-gray-600"
-                                    : "text-red-500"
+                                      ? "text-gray-600"
+                                      : "text-red-500"
                                     }`}
                                 >
                                   <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5 flex-shrink-0" />
@@ -658,7 +676,7 @@ const SearchEmp = () => {
                 {selectedEmployees.length > 0 && (
                   <div className="sticky bottom-0 p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-white border-t border-gray-200 shadow-lg">
                     <button
-                      onClick={handleSendEmail}
+                      onClick={isIndividualSelection ? handleSendEmail : handleBulkSend}
                       disabled={sendingEmails}
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white py-2.5 sm:py-3 md:py-4 lg:py-5 px-4 sm:px-6 rounded-lg sm:rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm md:text-base lg:text-lg"
                     >
@@ -671,8 +689,7 @@ const SearchEmp = () => {
                         <>
                           <Send className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                           <span>
-                            Send Registration Emails ({selectedEmployees.length}
-                            )
+                            {isIndividualSelection ? 'Send Individual Emails' : 'Send Bulk Emails'} ({selectedEmployees.length})
                           </span>
                         </>
                       )}
@@ -701,7 +718,7 @@ const SearchEmp = () => {
       {/* Bulk Email Sender Modal */}
       {showBulkSender && (
         <BulkEmailSender
-          employees={filteredEmployees}
+          employees={selectedEmployees.length > 0 ? selectedEmployees : filteredEmployees}
           onClose={() => setShowBulkSender(false)}
           filterType={bulkFilterType}
         />
