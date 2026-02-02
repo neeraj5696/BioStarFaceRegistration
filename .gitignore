@@ -32,3 +32,5 @@ Thumbs.db
 # Uploads
 backend/uploads/
 uploads/
+
+dist/
