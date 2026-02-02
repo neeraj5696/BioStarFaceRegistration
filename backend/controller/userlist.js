@@ -26,7 +26,7 @@ const searchEmployees = async (req, res) => {
     });
 
     const result = await axios.get(
-      `${process.env.BIOSTAR_URL}/api/users?group_id=1&limit=500&offset=0&order_by=user_id:false&last_modified=0`,
+      `${process.env.BIOSTAR_URL}/api/users?group_id=1&limit=0&offset=0&order_by=user_id:false&last_modified=0`,
       {
         headers: {
           "bs-session-id": sessionId,
@@ -229,9 +229,9 @@ const sendVerificationEmail = async (req, res) => {
     };
 
     // Send email
-  const mailresult=  await transporter.sendMail(mailOptions);
-  console.log("Mail sent result:", mailresult);
+    await transporter.sendMail(mailOptions);
 
+    // Close transporter
 
     transporter.close();
 
@@ -383,7 +383,8 @@ const sendBulkVerificationEmails = async (req, res) => {
           `,
         };
 
-        // await transporter.sendMail(mailOptions);
+     //   await transporter.sendMail(mailOptions);
+
 
 
         //Add to log

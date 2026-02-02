@@ -77,9 +77,31 @@ app.post("/api/addVisitor", addVisitor)
 
 
 app.use("/uploads", express.static("uploads"));
-app.use(express.static(path.join(__dirname, "dist_frontend")));
+
+// Serve frontend files. When packaged with `pkg`, static files are copied
+// next to the executable (dist/dist_frontend). Use that directory when
+// running the executable; otherwise use the local `dist_frontend` during dev.
+const isPkg = typeof process.pkg !== 'undefined';
+const frontendBase = isPkg ? path.join(path.dirname(process.execPath), 'dist_frontend') : path.join(__dirname, 'dist_frontend');
+if (fs.existsSync(frontendBase)) {
+  app.use(express.static(frontendBase));
+} else {
+  // Fallback: attempt to serve from snapshot assets (works when files
+  // were bundled as pkg assets). We will still try to read index.html
+  // directly since `res.sendFile` can't access snapshot paths.
+  app.use(express.static(path.join(__dirname, 'dist_frontend')));
+}
+
 app.get(/^(?!\/api).*$/, (req, res) => {
-  res.sendFile(path.join(__dirname, "dist_frontend", "index.html"));
+  const indexFsPath = path.join(frontendBase, 'index.html');
+  if (fs.existsSync(indexFsPath)) return res.sendFile(indexFsPath);
+
+  try {
+    const indexContent = fs.readFileSync(path.join(__dirname, 'dist_frontend', 'index.html'), 'utf8');
+    return res.send(indexContent);
+  } catch (err) {
+    return res.status(500).send('index.html not found');
+  }
 });
 
 // app.listen(httpsPort, "0.0.0.0", () => {
@@ -90,7 +112,7 @@ app.get(/^(?!\/api).*$/, (req, res) => {
 
 https.createServer(sslOptions,app).listen(httpsPort, "0.0.0.0", () => {
   console.log(`🔒 HTTPS Server: https://localhost:${httpsPort}`);
-  console.log(`📱 Mobile: https://192.168.0.166:${httpsPort}`);
+  console.log(`📱 Mobile: https://192.168.0.129:${httpsPort}`);
   console.log(`✅ Trusted certificates - no browser warnings!`);
 });
 

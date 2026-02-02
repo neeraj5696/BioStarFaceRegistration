@@ -1,32 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 
-const historyFilePath = path.join(__dirname, '../data/history.json');
-const lockFilePath = path.join(__dirname, '../data/history.lock');
+// Use process.cwd() for executable compatibility
+const dataDir = path.join(process.cwd(), 'data');
+const historyFilePath = path.join(dataDir, 'history.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
 let writeQueue = [];
 let isWriting = false;
 
-const acquireLock = async (maxRetries = 10) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      fs.writeFileSync(lockFilePath, process.pid.toString(), { flag: 'wx' });
-      return true;
-    } catch (error) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  }
-  return false;
-};
-
-const releaseLock = () => {
-  try {
-    fs.unlinkSync(lockFilePath);
-  } catch (error) {}
-};
-
 const readHistory = () => {
   try {
+    // Ensure data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
     const data = fs.readFileSync(historyFilePath, 'utf8');
     return JSON.parse(data);
   } catch (error) {
@@ -34,13 +26,11 @@ const readHistory = () => {
   }
 };
 
-const writeHistory = async (data) => {
-  const locked = await acquireLock();
-  if (!locked) throw new Error('Could not acquire lock');
+const writeHistory = (data) => {
   try {
     fs.writeFileSync(historyFilePath, JSON.stringify(data, null, 2));
-  } finally {
-    releaseLock();
+  } catch (error) {
+    console.error('Error writing history:', error);
   }
 };
 
@@ -75,7 +65,7 @@ const processQueue = async () => {
       }
     });
     
-    await writeHistory(data);
+    writeHistory(data);
   } finally {
     isWriting = false;
     if (writeQueue.length > 0) {

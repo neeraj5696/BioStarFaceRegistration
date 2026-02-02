@@ -103,7 +103,8 @@ const PhotoCapture = () => {
       };
 
       // const response =
-    const uploadresult=  await axios.post(`/api/uploadphoto`, photoData, {
+  //  const uploadresult=  await axios.post(`${BioStarUrl}/api/uploadphoto`, photoData, {
+          const uploadresult=  await axios.post(`/api/uploadphoto`, photoData, {
         headers: { "Content-Type": "application/json" },
       });
 

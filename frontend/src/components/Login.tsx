@@ -25,7 +25,8 @@ function Login() {
     const fetchCsrfToken = async () => {
       try {
         const response = await axios.get(
-          `/api/auth/csrf-token`,
+         // `${Backend_URL}//api/auth/csrf-token`,
+             `/api/auth/csrf-token`,
           {
             withCredentials: true,
           }
@@ -48,7 +49,8 @@ function Login() {
     setLoading(true);
     try {
       const response = await axios.post(
-        `/api/auth/login`,
+      //  `${Backend_URL}/api/auth/login`,
+           `/api/auth/login`,
         {
           username,
           password,

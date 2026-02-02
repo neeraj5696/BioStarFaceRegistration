@@ -2,12 +2,14 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
+  Calendar,
   Mail,
   CheckCircle,
   Clock,
   Shield,
   LogOut,
   FileSpreadsheet,
+  X,
 } from "lucide-react";
 import axios from "axios";
 import * as XLSX from "xlsx";
@@ -35,7 +37,7 @@ interface HistoryData {
 //   return /^(https?:\/\/)/i.test(rawUrl) ? rawUrl : `http://${rawUrl}`;
 // };
 
-// const BACKEND_URL = getBackendUrl();
+// const BioStarUrl = getBackendUrl();
 const ITEMS_PER_PAGE = 100;
 const SEARCH_DEBOUNCE_MS = 300;
 const LINK_EXPIRY_DAYS = 7;
@@ -54,6 +56,8 @@ const History = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageInput, setPageInput] = useState("1");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Debounce search term
   useEffect(() => {
@@ -82,8 +86,18 @@ const History = () => {
       setFilteredHistory([]);
       return;
     }
-    setFilteredHistory(data.history);
-  }, [data]);
+    
+    // Filter by selected date if provided
+    if (selectedDate) {
+      const filtered = data.history.filter((item) => {
+        const itemDate = new Date(item.mailSentAt).toISOString().split("T")[0];
+        return itemDate === selectedDate;
+      });
+      setFilteredHistory(filtered);
+    } else {
+      setFilteredHistory(data.history);
+    }
+  }, [data, selectedDate]);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -100,7 +114,8 @@ const History = () => {
         params.append("search", debouncedSearch);
       }
       
-      const response = await axios.get(`/api/history?${params}`);
+    //  const response = await axios.get(`${BioStarUrl}/api/history?${params}`);
+        const response = await axios.get(`/api/history?${params}`);
       setData(response.data);
       setFilteredHistory(response.data.history || []);
       setTotal(response.data.total || 0);
@@ -122,7 +137,8 @@ const History = () => {
     try {
       setError(null);
       setLoading(true);
-      const response = await axios.get(`/api/history?limit=${EXCEL_EXPORT_LIMIT}&offset=0`);
+  //    const response = await axios.get(`${BioStarUrl}/api/history?limit=${EXCEL_EXPORT_LIMIT}&offset=0`);
+       const response = await axios.get(`/api/history?limit=${EXCEL_EXPORT_LIMIT}&offset=0`);
       const allData = response.data.history || [];
 
       const excelData = allData.map((item: HistoryItem, index: number) => ({
@@ -173,6 +189,18 @@ const History = () => {
     setPageInput((validPage + 1).toString());
   }, [total]);
 
+  const handleDateChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const date = event.target.value;
+    setSelectedDate(date);
+    setPage(0);
+    setShowDatePicker(false);
+  }, []);
+
+  const handleClearDate = useCallback(() => {
+    setSelectedDate("");
+    setPage(0);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -218,6 +246,8 @@ const History = () => {
 
             {/* Action Icons */}
             <div className="flex items-center gap-4">
+            
+
               <button
                 onClick={() => {
                   localStorage.clear();
@@ -298,22 +328,64 @@ const History = () => {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gradient-to-r from-blue-700 to-blue-600 border-b-4 border-blue-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-200">●</span>
+                      Name
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-blue-200" />
+                      Email
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Mail Sent
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="relative group">
+                      <button
+                        onClick={() => setShowDatePicker(!showDatePicker)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-500 text-white text-xs font-semibold hover:bg-blue-400 transition-all duration-200 active:scale-[0.96] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-700 focus:ring-blue-300"
+                        title="Filter by date"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        {selectedDate ? selectedDate : "Date"}
+                        {selectedDate && (
+                          <X 
+                            className="h-3.5 w-3.5 hover:text-yellow-200 cursor-pointer" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearDate();
+                            }}
+                          />
+                        )}
+                      </button>
+
+                      {showDatePicker && (
+                        <div className="absolute left-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-blue-200 p-3 z-50 animate-in">
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                            className="px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none text-sm"
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-300" />
+                      Enrollment Status
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Link Status
+                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-yellow-300" />
+                      Link Status
+                    </div>
                   </th>
                 </tr>
               </thead>

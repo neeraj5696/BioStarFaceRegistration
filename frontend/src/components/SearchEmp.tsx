@@ -127,7 +127,8 @@ const SearchEmp = () => {
     let response = null;
     setLoading(true);
     try {
-      response = await axios.post(`/api/employees`, {
+    //  response = await axios.post(`${Backend_URL}/api/employees`, {
+           response = await axios.post(`/api/employees`, {
         username,
         password,
       });
@@ -259,7 +260,8 @@ const SearchEmp = () => {
     setSendingEmails(true);
     try {
       const promises = validEmployees.map((employee) =>
-        axios.post(`/api/send-email`, {
+       // axios.post(`${Backend_URL}/api/send-email`, {
+           axios.post(`/api/send-email`, {
           employeeId: employee.id,
           email: employee.email,
           name: employee.name,

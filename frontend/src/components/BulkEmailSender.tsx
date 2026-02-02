@@ -70,7 +70,8 @@ const BulkEmailSender: React.FC<BulkEmailSenderProps> = ({ employees, onClose, f
       const batch = filteredEmployees.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
 
       try {
-        const response = await axios.post(`$/api/send-bulk-email`, {
+       // const response = await axios.post(`${Backend_URL}/api/send-bulk-email`, {
+         const response = await axios.post(`/api/send-bulk-email`, {
           employees: batch.map(emp => ({
             id: emp.id,
             name: emp.name,
